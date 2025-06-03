@@ -1,0 +1,607 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema de Incorporación de Bienes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            background-image: url('fondo_barinas.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+        }
+        .container { 
+            max-width: 1050px; 
+            width: 96%;
+            margin: 40px auto 30px auto; 
+            padding: 20px; 
+            background: rgba(255,255,255,0.97);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.18), 0 2px 10px #ccc;
+        }
+        .menu-interno { margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .menu-interno a { 
+            display: inline-block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid #ddd;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            background: #f5f5f5;
+        }
+        .menu-interno a.activo { 
+            background: #fff;
+            border-bottom: 2px solid #fff;
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .seccion-contenido { border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        .form-table { width: 100%; border-collapse: collapse; }
+        .form-table td { padding: 10px; border: 1px solid #ddd; }
+        .search-box { margin-bottom: 20px; }
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .results-table th, .results-table td { padding: 10px; border: 1px solid #ddd; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+        .detail-view { background: #f9f9f9; padding: 20px; margin-top: 20px; }
+        .back-button {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        .modal-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 30px 30px 20px 30px;
+            min-width: 320px;
+            max-width: 98vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 2px 20px #3338;
+            position: relative;
+        }
+        .modal-content .action-btn-lista {
+            background-color: #6c757d;
+            color: #fff;
+            margin-right: 10px;
+        }
+        .modal-content .action-btn-lista:hover {
+            background-color: #495057;
+        }
+        .action-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .action-btn:hover {
+            background-color: #0056b3;
+            color: #fff;
+        }
+        .edit-table { width: 100%; border-collapse: collapse; margin: 0 auto 20px auto; }
+        .edit-table td { padding: 10px; border: 1px solid #ddd; }
+        .edit-table label { font-weight: bold; }
+        textarea {
+            width: 100%;
+            min-height: 38px;
+            resize: vertical;
+            overflow-y: hidden;
+            box-sizing: border-box;
+        }
+        input[type="text"] {
+            width: 100%;
+            min-height: 38px;
+            box-sizing: border-box;
+        }
+        @media (max-width: 600px) {
+            .modal-content { padding: 10px; min-width: 0; }
+        }
+    </style>
+    <script>
+        function actualizarSubcategorias() {
+            const tipo = document.getElementById('tipo_bien').value;
+            const subcatSelect = document.getElementById('subcategoria');
+            subcatSelect.innerHTML = '<option value="">Cargando...</option>';
+
+            const subcategorias = {
+                Inmueble: [
+                    '1-01: Edificios para oficinas',
+                    '1-02: Establecimientos culturales',
+                    '1-03: Fines asistenciales y de protección social',
+                    '1-04: Obras públicas',
+                    '1-05: Fines agropecuarios',
+                    '1-06: Fines industriales',
+                    '1-07: Cárceles y reformatorios',
+                    '1-08: Acueductos y obras hidráulicas',
+                    '1-09: Plantas eléctricas',
+                    '1-10: Telecomunicaciones',
+                    '1-11: Otros servicios públicos',
+                    '1-12: Instalaciones portuarias',
+                    '1-13: Aeródromos y aeropuertos',
+                    '1-14: Ferrocarriles',
+                    '1-15: Alojamiento y hoteles',
+                    '1-16: Uso policial',
+                    '1-17: Otras construcciones',
+                    '1-18: Construcciones en proceso',
+                    '1-19: Predios urbanos',
+                    '1-20: Terrenos rurales',
+                    '1-21: Minas'
+                ],
+                Mueble: [
+                    '2-01: Máquinas y equipos de oficina',
+                    '2-02: Mobiliario de alojamiento',
+                    '2-03: Equipos de construcción y taller',
+                    '2-04: Equipos de transporte',
+                    '2-05: Telecomunicaciones',
+                    '2-06: Equipos médico-quirúrgicos',
+                    '2-07: Equipos científicos y educativos',
+                    '2-08: Colecciones culturales',
+                    '2-09: Armamento y defensa',
+                    '2-10: Instalaciones provisionales',
+                    '2-11: Semovientes',
+                    '2-12: Otros elementos'
+                ]
+            };
+
+            subcatSelect.innerHTML = subcategorias[tipo] 
+                ? subcategorias[tipo].map(opt => `<option value="${opt}">${opt}</option>`).join('')
+                : '<option value="">Seleccione tipo primero</option>';
+        }
+
+        function abrirModalDetalle(id) {
+            window.location.href = '?accion=consulta&ver=' + id;
+        }
+
+        function mostrarClaveAccionRegistro() {
+            document.getElementById('form-datos-bien').style.display = 'none';
+            document.getElementById('form-clave-accion').style.display = '';
+        }
+
+        function volverDatosRegistro() {
+            document.getElementById('form-clave-accion').style.display = 'none';
+            document.getElementById('form-datos-bien').style.display = '';
+        }
+
+        function mostrarClaveAccionEliminar(id) {
+            document.getElementById('form-eliminar-' + id).style.display = 'none';
+            document.getElementById('form-clave-accion-eliminar-' + id).style.display = '';
+        }
+
+        function volverEliminar(id) {
+            document.getElementById('form-clave-accion-eliminar-' + id).style.display = 'none';
+            document.getElementById('form-eliminar-' + id).style.display = '';
+        }
+
+        function mostrarClaveAccionEditar(id) {
+            document.getElementById('form-editar-' + id).style.display = 'none';
+            document.getElementById('form-clave-accion-editar-' + id).style.display = '';
+        }
+
+        function volverEditar(id) {
+            document.getElementById('form-clave-accion-editar-' + id).style.display = 'none';
+            document.getElementById('form-editar-' + id).style.display = '';
+        }
+
+        // Modal Clave de Acción
+        function abrirModalClaveAccion(tipo, id = null) {
+            document.getElementById('modalClaveAccion').style.display = 'flex';
+            document.getElementById('clave_accion_tipo').value = tipo;
+            document.getElementById('clave_accion_id').value = id || '';
+            document.getElementById('clave_accion_input').value = '';
+            document.getElementById('clave_accion_input').focus();
+        }
+        function cerrarModalClaveAccion() {
+            document.getElementById('modalClaveAccion').style.display = 'none';
+        }
+        function submitClaveAccion() {
+            document.getElementById('form-modal-clave-accion').submit();
+        }
+
+        // Auto-resize for all textareas and text inputs
+        function autoResizeField(el) {
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // For textareas
+            document.querySelectorAll('textarea').forEach(function(el) {
+                autoResizeField(el);
+                el.addEventListener('input', function() { autoResizeField(el); });
+            });
+            // Eliminar autoajuste de ancho para input[type="text"]
+            // document.querySelectorAll('input[type="text"]').forEach(function(el) {
+            //     el.addEventListener('input', function() {
+            //         el.style.width = '1px';
+            //         el.style.width = (el.scrollWidth + 10) + 'px';
+            //     });
+            //     // Initial resize
+            //     el.style.width = (el.scrollWidth + 10) + 'px';
+            // });
+
+            // Asegúrate de que el evento submit esté correctamente asignado
+            document.addEventListener('DOMContentLoaded', function() {
+                // Asignar el evento submit correctamente
+                var formClave = document.getElementById('form-modal-clave-accion');
+                if (formClave) {
+                    formClave.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        var tipo = document.getElementById('clave_accion_tipo').value;
+                        var id = document.getElementById('clave_accion_id').value;
+                        var clave = document.getElementById('clave_accion_input').value;
+
+                        if (tipo === 'registro') {
+                            var f = document.createElement('form');
+                            f.method = 'POST';
+                            f.innerHTML = '<input type="hidden" name="confirmar_registro" value="1">' +
+                                        '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                            document.body.appendChild(f);
+                            f.submit();
+                        } else if (tipo === 'editar') {
+                            var formEditar = document.getElementById('form-editar-bien');
+                            if (formEditar) {
+                                var inputClave = document.createElement('input');
+                                inputClave.type = 'hidden';
+                                inputClave.name = 'clave_accion';
+                                inputClave.value = clave;
+                                formEditar.appendChild(inputClave);
+
+                                var inputConfirm = document.createElement('input');
+                                inputConfirm.type = 'hidden';
+                                inputConfirm.name = 'confirmar_editar';
+                                inputConfirm.value = '1';
+                                formEditar.appendChild(inputConfirm);
+
+                                formEditar.submit();
+                            } else {
+                                var f = document.createElement('form');
+                                f.method = 'POST';
+                                f.innerHTML = '<input type="hidden" name="confirmar_editar" value="1">' +
+                                            '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                                if (id) {
+                                    f.innerHTML += '<input type="hidden" name="id" value="'+id+'">';
+                                }
+                                document.body.appendChild(f);
+                                f.submit();
+                            }
+                        } else if (tipo === 'eliminar') {
+                            // Enviar a eliminar_bien.php con clave y id
+                            var f = document.createElement('form');
+                            f.method = 'POST';
+                            f.action = 'eliminar_bien.php';
+                            f.innerHTML = '<input type="hidden" name="id" value="'+id+'">' +
+                                        '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                            document.body.appendChild(f);
+                            setTimeout(function() { f.submit(); }, 10); // Forzar submit tras agregar al DOM
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <img src="logo_iaceb.png" alt="Logo IACEB" style="height:60px;">
+        <img src="logo_barinas.png" alt="Logo Barinas" style="height:60px;">
+    </div>
+    <!-- Menú interno -->
+    <div class="menu-interno">
+        <a href="?accion=consulta" class="activo">Consultar Bienes</a>
+        <a href="?accion=registro" class="">Incorporar Nuevo Bien</a>
+    </div>
+
+    <!-- Contenido dinámico -->
+    <div class="seccion-contenido">
+                    <!-- Sección de Consulta -->
+            <form method="GET" class="search-box">
+                <input type="hidden" name="accion" value="consulta">
+                <input type="text" name="busqueda" placeholder="Buscar por código o descripción" value="">
+                <button type="submit">Buscar</button>
+            </form>
+
+                        <table class="results-table">
+                <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+                                <tr>
+                    <td>IACEB-86</td>
+                    <td>Mueble</td>
+                    <td>Silla de visitante color gris...</td>
+                    <td>11/05/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-3" style="display:inline;">
+                            <input type="hidden" name="id" value="3">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-3" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="3">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(3)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(3)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-149</td>
+                    <td>Mueble</td>
+                    <td>Moto SKYGO, Modelo SG150,PLACA AE606A, Color GRIS,...</td>
+                    <td>31/01/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-7" style="display:inline;">
+                            <input type="hidden" name="id" value="7">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-7" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="7">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(7)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(7)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-1115</td>
+                    <td>Mueble</td>
+                    <td>Amplificador de sonido, Marca: SONY, Modelo:STR-K8...</td>
+                    <td>26/01/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-6" style="display:inline;">
+                            <input type="hidden" name="id" value="6">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-6" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="6">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(6)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(6)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-55661</td>
+                    <td>Mueble</td>
+                    <td>Amplificador de sonido, Marca: SONY, Modelo:STR-K8...</td>
+                    <td>25/01/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-5" style="display:inline;">
+                            <input type="hidden" name="id" value="5">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-5" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="5">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(5)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(5)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-01</td>
+                    <td>Mueble</td>
+                    <td>Escritorio de formica con los gavetas operativas, ...</td>
+                    <td>15/01/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-1" style="display:inline;">
+                            <input type="hidden" name="id" value="1">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-1" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="1">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(1)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(1)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-20400</td>
+                    <td>Mueble</td>
+                    <td>Gavetero de madera, color marrón con 3 gavetas op...</td>
+                    <td>09/01/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-4" style="display:inline;">
+                            <input type="hidden" name="id" value="4">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-4" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="4">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(4)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(4)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-56</td>
+                    <td>Mueble</td>
+                    <td>Silla de visitante color gris, operativa....</td>
+                    <td>08/01/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-2" style="display:inline;">
+                            <input type="hidden" name="id" value="2">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-2" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="2">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(2)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(2)">Ver Detalles</button>
+                    </td>
+                </tr>
+                                <tr>
+                    <td>IACEB-96</td>
+                    <td>Mueble</td>
+                    <td>Cafetera HAMILTON BEACH, Color Negra, sin serial....</td>
+                    <td>01/01/1970</td>
+                    <td>Optimo</td>
+                    <td>
+                        <!-- Editar (dos pasos) -->
+                        <form method="POST" id="form-editar-8" style="display:inline;">
+                            <input type="hidden" name="id" value="8">
+                            <button type="submit" name="editar_bien" class="action-btn">Editar</button>
+                        </form>
+                        <!-- Eliminar (clave de acción como confirmación, usando eliminar_bien.php) -->
+                        <form method="POST" id="form-eliminar-8" action="eliminar_bien.php" style="display:inline;">
+                            <input type="hidden" name="id" value="8">
+                            <!-- El botón ahora envía el formulario tras pedir la clave -->
+                            <button type="button" class="action-btn" style="background-color:#e74c3c;" onclick="pedirClaveYEliminar(8)">Eliminar</button>
+                        </form>
+                        <button type="button" class="action-btn" onclick="abrirModalDetalle(8)">Ver Detalles</button>
+                    </td>
+                </tr>
+                            </table>
+            
+                        </div>
+    <a href="Inicio.php" class="back-button">← Regresar a Inicio</a>
+</div>
+
+<!-- Modal Clave de Acción Global -->
+<div class="modal-bg" id="modalClaveAccion" style="display:none;">
+    <div class="modal-content">
+        <h3>Clave de Acción</h3>
+        <form method="POST" id="form-modal-clave-accion">
+            <input type="hidden" name="clave_accion_tipo" id="clave_accion_tipo">
+            <input type="hidden" name="clave_accion_id" id="clave_accion_id">
+            <table class="form-table">
+                <tr>
+                    <td><label>Clave de Acción:</label></td>
+                    <td><input type="password" name="clave_accion" id="clave_accion_input" required></td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center;">
+                        <button type="button" onclick="submitClaveAccion()">Confirmar</button>
+                        <button type="button" onclick="cerrarModalClaveAccion()" class="action-btn action-btn-lista">Cancelar</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Interceptar el submit de los formularios para usar el modal
+    document.getElementById('form-modal-clave-accion').onsubmit = function(e) {
+        e.preventDefault();
+        var tipo = document.getElementById('clave_accion_tipo').value;
+        var id = document.getElementById('clave_accion_id').value;
+        var clave = document.getElementById('clave_accion_input').value;
+
+        if (tipo === 'registro') {
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.innerHTML = '<input type="hidden" name="confirmar_registro" value="1">' +
+                          '<input type="hidden" name="clave_accion" value="'+clave+'">';
+            document.body.appendChild(f);
+            f.submit();
+        } else if (tipo === 'editar') {
+            var formEditar = document.getElementById('form-editar-bien');
+            if (formEditar) {
+                var inputClave = document.createElement('input');
+                inputClave.type = 'hidden';
+                inputClave.name = 'clave_accion';
+                inputClave.value = clave;
+                formEditar.appendChild(inputClave);
+
+                var inputConfirm = document.createElement('input');
+                inputConfirm.type = 'hidden';
+                inputConfirm.name = 'confirmar_editar';
+                inputConfirm.value = '1';
+                formEditar.appendChild(inputConfirm);
+
+                formEditar.submit();
+            } else {
+                var f = document.createElement('form');
+                f.method = 'POST';
+                f.innerHTML = '<input type="hidden" name="confirmar_editar" value="1">' +
+                            '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                if (id) {
+                    f.innerHTML += '<input type="hidden" name="id" value="'+id+'">';
+                }
+                document.body.appendChild(f);
+                f.submit();
+            }
+        } else if (tipo === 'eliminar') {
+            // Enviar a eliminar_bien.php con clave y id
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.action = 'eliminar_bien.php';
+            f.innerHTML = '<input type="hidden" name="id" value="'+id+'">' +
+                          '<input type="hidden" name="clave_accion" value="'+clave+'">';
+            document.body.appendChild(f);
+            setTimeout(function() { f.submit(); }, 10); // Forzar submit tras agregar al DOM
+        }
+    };
+
+    function pedirClaveYEliminar(id) {
+        var clave = prompt("Ingrese su clave de acción para eliminar este bien:");
+        if (clave !== null && clave.trim() !== "") {
+            var form = document.getElementById('form-eliminar-' + id);
+            // Crear input oculto para la clave
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'clave_accion';
+            input.value = clave;
+            form.appendChild(input);
+            form.submit();
+        }
+    }
+</script>
+</body>
+</html>

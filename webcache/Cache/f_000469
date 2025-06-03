@@ -1,0 +1,571 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema de Incorporación de Bienes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            background-image: url('fondo_barinas.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+        }
+        .container { 
+            max-width: 1050px; 
+            width: 96%;
+            margin: 40px auto 30px auto; 
+            padding: 20px; 
+            background: rgba(255,255,255,0.97);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.18), 0 2px 10px #ccc;
+        }
+        .menu-interno { margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .menu-interno a { 
+            display: inline-block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid #ddd;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            background: #f5f5f5;
+        }
+        .menu-interno a.activo { 
+            background: #fff;
+            border-bottom: 2px solid #fff;
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .seccion-contenido { border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        .form-table { width: 100%; border-collapse: collapse; }
+        .form-table td { padding: 10px; border: 1px solid #ddd; }
+        .search-box { margin-bottom: 20px; }
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .results-table th, .results-table td { padding: 10px; border: 1px solid #ddd; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+        .detail-view { background: #f9f9f9; padding: 20px; margin-top: 20px; }
+        .back-button {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        .modal-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 30px 30px 20px 30px;
+            min-width: 320px;
+            max-width: 98vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 2px 20px #3338;
+            position: relative;
+        }
+        .modal-content .action-btn-lista {
+            background-color: #6c757d;
+            color: #fff;
+            margin-right: 10px;
+        }
+        .modal-content .action-btn-lista:hover {
+            background-color: #495057;
+        }
+        .action-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .action-btn:hover {
+            background-color: #0056b3;
+            color: #fff;
+        }
+        .edit-table { width: 100%; border-collapse: collapse; margin: 0 auto 20px auto; }
+        .edit-table td { padding: 10px; border: 1px solid #ddd; }
+        .edit-table label { font-weight: bold; }
+        textarea {
+            width: 100%;
+            min-height: 38px;
+            resize: vertical;
+            overflow-y: hidden;
+            box-sizing: border-box;
+        }
+        input[type="text"] {
+            width: 100%;
+            min-height: 38px;
+            box-sizing: border-box;
+        }
+        @media (max-width: 600px) {
+            .modal-content { padding: 10px; min-width: 0; }
+        }
+    </style>
+    <script>
+        function actualizarSubcategorias() {
+            const tipo = document.getElementById('tipo_bien').value;
+            const subcatSelect = document.getElementById('subcategoria');
+            subcatSelect.innerHTML = '<option value="">Cargando...</option>';
+
+            const subcategorias = {
+                Inmueble: [
+                    '1-01: Edificios para oficinas',
+                    '1-02: Establecimientos culturales',
+                    '1-03: Fines asistenciales y de protección social',
+                    '1-04: Obras públicas',
+                    '1-05: Fines agropecuarios',
+                    '1-06: Fines industriales',
+                    '1-07: Cárceles y reformatorios',
+                    '1-08: Acueductos y obras hidráulicas',
+                    '1-09: Plantas eléctricas',
+                    '1-10: Telecomunicaciones',
+                    '1-11: Otros servicios públicos',
+                    '1-12: Instalaciones portuarias',
+                    '1-13: Aeródromos y aeropuertos',
+                    '1-14: Ferrocarriles',
+                    '1-15: Alojamiento y hoteles',
+                    '1-16: Uso policial',
+                    '1-17: Otras construcciones',
+                    '1-18: Construcciones en proceso',
+                    '1-19: Predios urbanos',
+                    '1-20: Terrenos rurales',
+                    '1-21: Minas'
+                ],
+                Mueble: [
+                    '2-01: Máquinas y equipos de oficina',
+                    '2-02: Mobiliario de alojamiento',
+                    '2-03: Equipos de construcción y taller',
+                    '2-04: Equipos de transporte',
+                    '2-05: Telecomunicaciones',
+                    '2-06: Equipos médico-quirúrgicos',
+                    '2-07: Equipos científicos y educativos',
+                    '2-08: Colecciones culturales',
+                    '2-09: Armamento y defensa',
+                    '2-10: Instalaciones provisionales',
+                    '2-11: Semovientes',
+                    '2-12: Otros elementos'
+                ]
+            };
+
+            subcatSelect.innerHTML = subcategorias[tipo] 
+                ? subcategorias[tipo].map(opt => `<option value="${opt}">${opt}</option>`).join('')
+                : '<option value="">Seleccione tipo primero</option>';
+        }
+
+        function abrirModalDetalle(id) {
+            window.location.href = '?accion=consulta&ver=' + id;
+        }
+
+        function mostrarClaveAccionRegistro() {
+            document.getElementById('form-datos-bien').style.display = 'none';
+            document.getElementById('form-clave-accion').style.display = '';
+        }
+
+        function volverDatosRegistro() {
+            document.getElementById('form-clave-accion').style.display = 'none';
+            document.getElementById('form-datos-bien').style.display = '';
+        }
+
+        function mostrarClaveAccionEliminar(id) {
+            document.getElementById('form-eliminar-' + id).style.display = 'none';
+            document.getElementById('form-clave-accion-eliminar-' + id).style.display = '';
+        }
+
+        function volverEliminar(id) {
+            document.getElementById('form-clave-accion-eliminar-' + id).style.display = 'none';
+            document.getElementById('form-eliminar-' + id).style.display = '';
+        }
+
+        function mostrarClaveAccionEditar(id) {
+            document.getElementById('form-editar-' + id).style.display = 'none';
+            document.getElementById('form-clave-accion-editar-' + id).style.display = '';
+        }
+
+        function volverEditar(id) {
+            document.getElementById('form-clave-accion-editar-' + id).style.display = 'none';
+            document.getElementById('form-editar-' + id).style.display = '';
+        }
+
+        // Modal Clave de Acción
+        function abrirModalClaveAccion(tipo, id = null) {
+            document.getElementById('modalClaveAccion').style.display = 'flex';
+            document.getElementById('clave_accion_tipo').value = tipo;
+            document.getElementById('clave_accion_id').value = id || '';
+            document.getElementById('clave_accion_input').value = '';
+            document.getElementById('clave_accion_input').focus();
+        }
+        function cerrarModalClaveAccion() {
+            document.getElementById('modalClaveAccion').style.display = 'none';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('form-modal-clave-accion').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var tipo = document.getElementById('clave_accion_tipo').value;
+                var id = document.getElementById('clave_accion_id').value;
+                var clave = document.getElementById('clave_accion_input').value;
+
+                if (tipo === 'eliminar') {
+                    var formEliminar = document.getElementById('form-eliminar-' + id);
+                    if (formEliminar) {
+                        var prev = formEliminar.querySelector('input[name="clave_accion"]');
+                        if (prev) formEliminar.removeChild(prev);
+                        var inputClave = document.createElement('input');
+                        inputClave.type = 'hidden';
+                        inputClave.name = 'clave_accion';
+                        inputClave.value = clave;
+                        formEliminar.appendChild(inputClave);
+                        formEliminar.submit();
+                    } else {
+                        var form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '';
+                        form.innerHTML = '<input type="hidden" name="id" value="' + id + '">' +
+                                         '<input type="hidden" name="clave_accion" value="' + clave + '">';
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                } else if (tipo === 'registro') {
+                    var f = document.createElement('form');
+                    f.method = 'POST';
+                    f.innerHTML = '<input type="hidden" name="confirmar_registro" value="1">' +
+                                  '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                    document.body.appendChild(f);
+                    f.submit();
+                } else if (tipo === 'editar') {
+                    var formEditar = document.getElementById('form-editar-bien');
+                    if (formEditar) {
+                        var inputClave = document.createElement('input');
+                        inputClave.type = 'hidden';
+                        inputClave.name = 'clave_accion';
+                        inputClave.value = clave;
+                        formEditar.appendChild(inputClave);
+
+                        var inputConfirm = document.createElement('input');
+                        inputConfirm.type = 'hidden';
+                        inputConfirm.name = 'confirmar_editar';
+                        inputConfirm.value = '1';
+                        formEditar.appendChild(inputConfirm);
+
+                        formEditar.submit();
+                    } else {
+                        var f = document.createElement('form');
+                        f.method = 'POST';
+                        f.innerHTML = '<input type="hidden" name="confirmar_editar" value="1">' +
+                                    '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                        if (id) {
+                            f.innerHTML += '<input type="hidden" name="id" value="'+id+'">';
+                        }
+                        document.body.appendChild(f);
+                        f.submit();
+                    }
+                }
+                cerrarModalClaveAccion();
+            });
+        });
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <img src="logo_iaceb.png" alt="Logo IACEB" style="height:60px;">
+        <img src="logo_barinas.png" alt="Logo Barinas" style="height:60px;">
+    </div>
+    <!-- Menú interno -->
+    <div class="menu-interno">
+        <a href="?accion=consulta" class="">Consultar Bienes</a>
+        <a href="?accion=registro" class="">Incorporar Nuevo Bien</a>
+    </div>
+
+    <!-- Contenido dinámico -->
+    <div class="seccion-contenido">
+                    <div class="modal-bg" id="modalEditar">
+                <div class="modal-content">
+                    <h3>Editar Bien</h3>
+                    <form method="POST" id="form-editar-bien" enctype="multipart/form-data">
+                        <input type="hidden" name="id" value="1">
+                        <table class="edit-table">
+                                                                                                                            <tr>
+                                    <td width="35%"><label>Codigo Unico:</label></td>
+                                    <td>
+                                                                                    <input type="text" name="codigo_unico" value="IACEB-01" required oninput="autoResizeField(this)">
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Tipo Bien:</label></td>
+                                    <td>
+                                                                                    <select name="tipo_bien" id="tipo_bien_edit" onchange="actualizarSubcategoriasEditar()" required>
+                                                <option value="">Seleccionar...</option>
+                                                <option value="Mueble" selected>Mueble</option>
+                                                <option value="Inmueble" >Inmueble</option>
+                                            </select>
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Subcategoria:</label></td>
+                                    <td>
+                                                                                    <select name="subcategoria" id="subcategoria_edit" required>
+                                                <!-- Las opciones se llenan por JS según tipo_bien -->
+                                            </select>
+                                            <script>
+                                                // Llenar subcategoría al abrir modal de edición
+                                                function actualizarSubcategoriasEditar() {
+                                                    var tipo = document.getElementById('tipo_bien_edit').value;
+                                                    var subcatSelect = document.getElementById('subcategoria_edit');
+                                                    var subcategorias = {
+                                                        Inmueble: [
+                                                            '1-01: Edificios para oficinas',
+                                                            '1-02: Establecimientos culturales',
+                                                            '1-03: Fines asistenciales y de protección social',
+                                                            '1-04: Obras públicas',
+                                                            '1-05: Fines agropecuarios',
+                                                            '1-06: Fines industriales',
+                                                            '1-07: Cárceles y reformatorios',
+                                                            '1-08: Acueductos y obras hidráulicas',
+                                                            '1-09: Plantas eléctricas',
+                                                            '1-10: Telecomunicaciones',
+                                                            '1-11: Otros servicios públicos',
+                                                            '1-12: Instalaciones portuarias',
+                                                            '1-13: Aeródromos y aeropuertos',
+                                                            '1-14: Ferrocarriles',
+                                                            '1-15: Alojamiento y hoteles',
+                                                            '1-16: Uso policial',
+                                                            '1-17: Otras construcciones',
+                                                            '1-18: Construcciones en proceso',
+                                                            '1-19: Predios urbanos',
+                                                            '1-20: Terrenos rurales',
+                                                            '1-21: Minas'
+                                                        ],
+                                                        Mueble: [
+                                                            '2-01: Máquinas y equipos de oficina',
+                                                            '2-02: Mobiliario de alojamiento',
+                                                            '2-03: Equipos de construcción y taller',
+                                                            '2-04: Equipos de transporte',
+                                                            '2-05: Telecomunicaciones',
+                                                            '2-06: Equipos médico-quirúrgicos',
+                                                            '2-07: Equipos científicos y educativos',
+                                                            '2-08: Colecciones culturales',
+                                                            '2-09: Armamento y defensa',
+                                                            '2-10: Instalaciones provisionales',
+                                                            '2-11: Semovientes',
+                                                            '2-12: Otros elementos'
+                                                        ]
+                                                    };
+                                                    subcatSelect.innerHTML = '';
+                                                    if (subcategorias[tipo]) {
+                                                        subcategorias[tipo].forEach(function(opt) {
+                                                            var selected = (opt === "2-01: M\u00e1quinas y equipos de oficina") ? 'selected' : '';
+                                                            subcatSelect.innerHTML += '<option value="'+opt+'" '+selected+'>'+opt+'</option>';
+                                                        });
+                                                    } else {
+                                                        subcatSelect.innerHTML = '<option value="">Seleccione tipo primero</option>';
+                                                    }
+                                                }
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    actualizarSubcategoriasEditar();
+                                                });
+                                            </script>
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Descripcion:</label></td>
+                                    <td>
+                                                                                    <textarea name="descripcion" rows="2" required oninput="autoResizeField(this)">Escritorio de formica con los gavetas operativas, color marrón, Operativo 			</textarea>
+                                                                            </td>
+                                </tr>
+                                                                                                <tr>
+                                        <td width="35%"><label>Fecha registrada:</label></td>
+                                        <td>
+                                            <input type="text" value="15/01/2024" readonly style="background:#eee;">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="35%"><label>Fecha Adquisicion:</label></td>
+                                        <td>
+                                            <input type="date" name="fecha_adquisicion" value="2024-01-15" required>
+                                        </td>
+                                    </tr>
+                                                                                                    <tr>
+                                    <td width="35%"><label>Precio Adquisicion:</label></td>
+                                    <td>
+                                                                                    <input type="number" step="0.01" name="precio_adquisicion" value="50.00" required> Bs
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Estado Conservacion:</label></td>
+                                    <td>
+                                                                                    <select name="estado_conservacion" required>
+                                                <option value="Optimo" selected>Óptimo</option>
+                                                <option value="Regular" >Regular</option>
+                                                <option value="Deteriorado" >Deteriorado</option>
+                                            </select>
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Ubicacion:</label></td>
+                                    <td>
+                                                                                    <select name="ubicacion" required>
+                                                                                                    <option value="Patrimonio" selected>Patrimonio</option>
+                                                                                                    <option value="Prensa" >Prensa</option>
+                                                                                                    <option value="Presidencia" >Presidencia</option>
+                                                                                                    <option value="Administración" >Administración</option>
+                                                                                                    <option value="Recursos Humanos" >Recursos Humanos</option>
+                                                                                                    <option value="Almacén" >Almacén</option>
+                                                                                                    <option value="Escuela de Música" >Escuela de Música</option>
+                                                                                                    <option value="Escuela de Artes Escénicas" >Escuela de Artes Escénicas</option>
+                                                                                                    <option value="Escuela de Artes Plásticos" >Escuela de Artes Plásticos</option>
+                                                                                                    <option value="Auditorio" >Auditorio</option>
+                                                                                                    <option value="Banda del estado barinas" >Banda del estado barinas</option>
+                                                                                                    <option value="Ateneo" >Ateneo</option>
+                                                                                                    <option value="No Ubicados" >No Ubicados</option>
+                                                                                            </select>
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Responsable Patrimonial:</label></td>
+                                    <td>
+                                                                                    <input type="text" name="responsable_patrimonial" value="Patrimonio" required oninput="autoResizeField(this)">
+                                                                            </td>
+                                </tr>
+                                                                                                                                                                                            <tr>
+                                    <td width="35%"><label>Documento Soporte:</label></td>
+                                    <td>
+                                                                                                                                    <a href="documentos/IACEB-01_1747922094.pdf" target="_blank" class="action-btn" style="background-color:#28a745;">Ver documento adjunto actual</a><br>
+                                                                                        <input type="file" name="documento_soporte" accept=".pdf,.jpg,.jpeg,.png">
+                                            <small>Puedes subir un nuevo archivo para reemplazar el actual.</small>
+                                                                            </td>
+                                </tr>
+                                                                                            <tr>
+                                    <td width="35%"><label>Cantidad:</label></td>
+                                    <td>
+                                                                                    <input type="number" name="cantidad" min="1" value="1" required>
+                                                                            </td>
+                                </tr>
+                                                                                                <tr>
+                                        <td width="35%"><label>Estado:</label></td>
+                                        <td>
+                                            <input type="text" name="estado" value="Incorporado" readonly style="background:#eee;">
+                                        </td>
+                                    </tr>
+                                                                <tr>
+                                <td colspan="2" style="text-align:center;">
+                                    <button type="submit" name="guardar_edicion" class="action-btn">Guardar Cambios</button>
+                                    <button type="button" onclick="window.location.href='?accion=consulta'" class="action-btn action-btn-lista">Cancelar</button>
+                                </td>
+                            </tr>
+                        </table>
+                    </form>
+                </div>
+            </div>
+            </div>
+    <a href="Inicio.php" class="back-button">← Regresar a Inicio</a>
+</div>
+
+<!-- Modal Clave de Acción Global -->
+<div class="modal-bg" id="modalClaveAccion" style="display:none;">
+    <div class="modal-content">
+        <h3>Clave de Acción</h3>
+        <form method="POST" id="form-modal-clave-accion">
+            <input type="hidden" name="clave_accion_tipo" id="clave_accion_tipo">
+            <input type="hidden" name="clave_accion_id" id="clave_accion_id">
+            <table class="form-table">
+                <tr>
+                    <td><label>Clave de Acción:</label></td>
+                    <td><input type="password" name="clave_accion" id="clave_accion_input" required></td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center;">
+                        <button type="submit">Confirmar</button>
+                        <button type="button" onclick="cerrarModalClaveAccion()" class="action-btn action-btn-lista">Cancelar</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Interceptar el submit de los formularios para usar el modal
+    document.getElementById('form-modal-clave-accion').onsubmit = function(e) {
+        e.preventDefault();
+        var tipo = document.getElementById('clave_accion_tipo').value;
+        var id = document.getElementById('clave_accion_id').value;
+        var clave = document.getElementById('clave_accion_input').value;
+
+        if (tipo === 'registro') {
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.innerHTML = '<input type="hidden" name="confirmar_registro" value="1">' +
+                          '<input type="hidden" name="clave_accion" value="'+clave+'">';
+            document.body.appendChild(f);
+            f.submit();
+        } else if (tipo === 'editar') {
+            var formEditar = document.getElementById('form-editar-bien');
+            if (formEditar) {
+                var inputClave = document.createElement('input');
+                inputClave.type = 'hidden';
+                inputClave.name = 'clave_accion';
+                inputClave.value = clave;
+                formEditar.appendChild(inputClave);
+
+                var inputConfirm = document.createElement('input');
+                inputConfirm.type = 'hidden';
+                inputConfirm.name = 'confirmar_editar';
+                inputConfirm.value = '1';
+                formEditar.appendChild(inputConfirm);
+
+                formEditar.submit();
+            } else {
+                var f = document.createElement('form');
+                f.method = 'POST';
+                f.innerHTML = '<input type="hidden" name="confirmar_editar" value="1">' +
+                            '<input type="hidden" name="clave_accion" value="'+clave+'">';
+                if (id) {
+                    f.innerHTML += '<input type="hidden" name="id" value="'+id+'">';
+                }
+                document.body.appendChild(f);
+                f.submit();
+            }
+        } else if (tipo === 'eliminar') {
+            // Enviar el formulario al formulario oculto de la fila correspondiente
+            var formEliminar = document.getElementById('form-eliminar-' + id);
+            if (formEliminar) {
+                // Elimina cualquier input previo de clave_accion para evitar duplicados
+                var prev = formEliminar.querySelector('input[name="clave_accion"]');
+                if (prev) formEliminar.removeChild(prev);
+                var inputClave = document.createElement('input');
+                inputClave.type = 'hidden';
+                inputClave.name = 'clave_accion';
+                inputClave.value = clave;
+                formEliminar.appendChild(inputClave);
+                formEliminar.submit();
+            }
+        }
+    };
+</script>
+</body>
+</html>
