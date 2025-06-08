@@ -44,10 +44,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
                 $investigacion = mysqli_real_escape_string($con, $_POST['responsable']);
 
                 // Obtener la cantidad del bien
-                $sql_cant = "SELECT cantidad FROM bienes_publicos WHERE id = $bien_id";
+                $sql_cant = "SELECT cantidad, responsable_patrimonial FROM bienes_publicos WHERE id = $bien_id";
                 $res_cant = mysqli_query($con, $sql_cant);
                 $row_cant = mysqli_fetch_assoc($res_cant);
                 $cantidad_faltante = $row_cant && isset($row_cant['cantidad']) ? (int)$row_cant['cantidad'] : 1;
+                $responsable_patrimonial = $row_cant && isset($row_cant['responsable_patrimonial']) ? $row_cant['responsable_patrimonial'] : '';
 
                 $sql = "INSERT INTO faltantes (bien_id, fecha_reporte, cantidad_faltante, causa_probable, investigacion) 
                         VALUES (?, CURDATE(), ?, ?, ?)";
@@ -65,6 +66,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
                             mysqli_stmt_bind_param($stmt_estado, "i", $bien_id);
                             mysqli_stmt_execute($stmt_estado);
                             mysqli_stmt_close($stmt_estado);
+                        }
+                        // Registrar movimiento tipo 'Reporte'
+                        $sql_mov = "INSERT INTO movimientos (bien_id, tipo_movimiento, fecha, cantidad, responsable) VALUES (?, 'Reporte', CURDATE(), ?, ?)";
+                        $stmt_mov = mysqli_prepare($con, $sql_mov);
+                        if ($stmt_mov) {
+                            mysqli_stmt_bind_param($stmt_mov, "iis", $bien_id, $cantidad_faltante, $responsable_patrimonial);
+                            mysqli_stmt_execute($stmt_mov);
+                            mysqli_stmt_close($stmt_mov);
                         }
                         $success = "Reporte de bien faltante registrado exitosamente.";
                         // Registrar actividad

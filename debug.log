@@ -26310,3 +26310,123 @@ Created()
 - 18:51:13.593 DEBUG: OnBrowserDestroyed()
 - 18:51:13.922 INFO: Ended application
 - 18:51:13.922 INFO: --------------------------------------------------------
+- 19:33:06.172 INFO: --------------------------------------------------------
+- 19:33:06.188 INFO: Started application
+- 19:33:06.188 INFO: Logging to: C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\debug.log
+- 19:33:06.188 INFO: Log level = DEBUG4
+- 19:33:06.188 INFO: Starting Mongoose 3.9c web server
+- 19:33:06.188 INFO: WWW directory: C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\www
+- 19:33:06.188 INFO: Index files: inicio.php
+- 19:33:06.188 INFO: CGI interpreter: C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\php\php-cgi.exe
+- 19:33:06.188 INFO: CGI pattern: **.php$
+- 19:33:06.188 INFO: Hide files patterns: 
+- 19:33:06.188 INFO: CGI environment variables set: TMP=C:\Users\Jin\AppData\Local\Temp\,TEMP=C:\Users\Jin\AppData\Local\Temp\,TMPDIR=C:\Users\Jin\AppData\Local\Temp\,SERVER_NAME=127.0.0.1,PHPDESKTOP_VERSION=57.0
+- 19:33:07.219 INFO: Web server url: http://127.0.0.1:55156/
+- 19:33:07.219 INFO: remote_debugging_port = 63330
+- 19:33:07.235 DEBUG: Command line string for the browser process: "C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\phpdesktop-chrome.exe" --no-sandbox --lang=en-US --log-file="C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\debug.log" --remote-debugging-port=63330
+- 19:33:09.391 DEBUG: App::OnContextInitialized()
+- 19:33:09.391 INFO: DPI, window enlarged by 25% new width/height = 1500/875
+- 19:33:09.391 DEBUG: Window max width/height = 1842/984
+- 19:33:09.391 DEBUG: GetBrowserWindow(): not found, hwnd = 1640404
+- 19:33:09.391 DEBUG: WindowProc(): event WM_GETMINMAXINFO: could not fetch BrowserWindow
+- 19:33:09.406 DEBUG: BrowserWindow::CreateBrowserControl()
+- 19:33:09.406 DEBUG: StoreBrowserWindow(): hwnd = 1640404
+- 19:33:09.016 DEBUG: Command line string for the gpu-process process: "C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\phpdesktop-chrome.exe" --type=gpu-process --no-sandbox --lang=en-US --log-file="C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\debug.log" --disable-direct-composition --supports-dual-gpus=false --gpu-driver-bug-workarounds=7,10,18,19,20,23,41,61,74 --disable-gl-extensions="GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent" --gpu-vendor-id=0x8086 --gpu-device-id=0x5917 --gpu-driver-vendor="Intel Corporation" --gpu-driver-version=31.0.101.2128 --gpu-driver-date=5-3-2024 --lang=en-US --log-file="C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\debug.log" --service-request-channel-token=FC7C0B5640BBEBE6E1438E6532050055 --mojo-platform-channel-handle=1820 /prefetch:2
+- 19:33:09.485 DEBUG: ClientHandler::OnAfterCreated()
+- 19:33:09.485 DEBUG: SetCefBrowser() called in ClientHandler::OnAfterCreated()
+- 19:33:09.500 DEBUG: OnLoadingStateChange: loading=1, url=
+- 19:33:09.015 DEBUG: Command line string for the renderer process: "C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\phpdesktop-chrome.exe" --type=renderer --no-sandbox --primordial-pipe-token=620E08F2714626A6A2E98DBD4C4D83CF --lang=en-US --lang=en-US --log-file="C:\Users\Jin\Documents\Bienes\phpdesktop-chrome-57.0-rc-php-7.1.3\debug.log" --enable-pinch --device-scale-factor=1.25 --num-raster-threads=2 --enable-main-frame-before-activation --content-image-texture-target=0,0,3553;0,1,3553;0,2,3553;0,3,3553;0,4,3553;0,5,3553;0,6,3553;0,7,3553;0,8,3553;0,9,3553;0,10,3553;0,11,3553;0,12,3553;0,13,3553;0,14,3553;0,15,3553;1,0,3553;1,1,3553;1,2,3553;1,3,3553;1,4,3553;1,5,3553;1,6,3553;1,7,3553;1,8,3553;1,9,3553;1,10,3553;1,11,3553;1,12,3553;1,13,3553;1,14,3553;1,15,3553;2,0,3553;2,1,3553;2,2,3553;2,3,3553;2,4,3553;2,5,3553;2,6,3553;2,7,3553;2,8,3553;2,9,3553;2,10,3553;2,11,3553;2,12,3553;2,13,3553;2,14,3553;2,15,3553;3,0,3553;3,1,3553;3,2,3553;3,3,3553;3,4,3553;3,5,3553;3,6,3553;3,7,3553;3,8,3553;3,9,3553;3,10,3553;3,11,3553;3,12,3553;3,13,3553;3,14,3553;3,15,3553 --service-request-channel-token=620E08F2714626A6A2E98DBD4C4D83CF --renderer-client-id=3 --mojo-platform-channel-handle=2396 /prefetch:1
+- 19:33:09.172 DEBUG: OnBrowserCreated()
+[0606/193309.760:ERROR:child_thread_impl.cc(762)] Request for unknown Channel-associated interface: ui::mojom::GpuMain
+- 19:33:12.391 INFO: GET 302 /
+- 19:33:12.578 INFO: GET 200 /login.php
+- 19:33:12.594 INFO: GET 200 /fondo_barinas.png
+- 19:33:12.750 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/login.php
+- 19:36:44.188 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/login.php
+- 19:36:45.266 INFO: POST 302 /login.php
+- 19:36:45.328 INFO: GET 200 /Inicio.php
+- 19:36:45.344 INFO: GET 200 /logo_iaceb.png
+- 19:36:45.344 INFO: GET 200 /logo_barinas.png
+- 19:36:45.344 INFO: GET 200 /style.css
+- 19:36:45.797 DEBUG: OnContextCreated()
+- 19:36:45.406 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:38:47.875 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:38:47.609 DEBUG: OnContextCreated()
+- 19:38:47.188 INFO: GET 200 /usuarios.php
+- 19:38:47.203 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/usuarios.php
+- 19:40:18.844 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/usuarios.php
+- 19:40:18.359 DEBUG: OnContextCreated()
+- 19:40:18.953 INFO: GET 200 /Inicio.php
+- 19:40:18.031 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:40:19.031 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:40:20.968 DEBUG: OnContextCreated()
+- 19:40:20.547 INFO: GET 200 /incorporaciones.php
+- 19:40:20.594 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/incorporaciones.php
+- 19:42:07.891 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/incorporaciones.php
+- 19:42:07.422 DEBUG: OnContextCreated()
+- 19:42:07.000 INFO: GET 200 /incorporaciones.php?accion=registro
+- 19:42:07.047 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/incorporaciones.php?accion=registro
+- 19:43:24.203 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/incorporaciones.php?accion=registro
+- 19:43:25.734 DEBUG: OnContextCreated()
+- 19:43:25.313 INFO: GET 200 /Inicio.php
+- 19:43:25.328 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:43:52.016 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:43:53.797 DEBUG: OnContextCreated()
+- 19:43:53.375 INFO: GET 200 /desincorporaciones.php
+- 19:43:53.391 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/desincorporaciones.php
+- 19:44:49.031 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/desincorporaciones.php
+- 19:44:49.547 DEBUG: OnContextCreated()
+- 19:44:49.125 INFO: GET 200 /desincorporaciones.php?accion=desincorporar
+- 19:44:49.141 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/desincorporaciones.php?accion=desincorporar
+- 19:45:58.969 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/desincorporaciones.php?accion=desincorporar
+- 19:45:58.468 DEBUG: OnContextCreated()
+- 19:45:58.031 INFO: GET 200 /Inicio.php
+- 19:45:58.047 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:46:00.344 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:46:01.735 DEBUG: OnLoadError, errorCode=-3, failedUrl=http://127.0.0.1:55156/transferencias.php
+- 19:46:01.735 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:46:01.735 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:46:01.797 INFO: GET 200 /transferencias.php
+- 19:46:01.312 DEBUG: OnContextCreated()
+- 19:46:01.891 INFO: GET 200 /transferencias.php
+- 19:46:01.906 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/transferencias.php
+- 19:46:58.891 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/transferencias.php
+- 19:46:58.390 DEBUG: OnContextCreated()
+- 19:46:58.969 INFO: GET 200 /Inicio.php
+- 19:46:58.016 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:47:00.610 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:47:00.312 DEBUG: OnContextCreated()
+- 19:47:00.891 INFO: GET 200 /reportar_faltante.php
+[0606/194700.692:INFO:CONSOLE(198)] "Uncaught TypeError: Cannot set property 'onsubmit' of null", source: http://127.0.0.1:55156/reportar_faltante.php (198)
+- 19:47:00.906 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/reportar_faltante.php
+- 19:48:05.500 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/reportar_faltante.php
+- 19:48:05.015 DEBUG: OnContextCreated()
+- 19:48:05.578 INFO: GET 200 /reportar_faltante.php?accion=reportar
+- 19:48:05.594 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/reportar_faltante.php?accion=reportar
+- 19:49:17.735 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/reportar_faltante.php?accion=reportar
+- 19:49:17.250 DEBUG: OnContextCreated()
+- 19:49:17.828 INFO: GET 200 /Inicio.php
+- 19:49:17.891 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:49:19.610 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:49:19.343 DEBUG: OnContextCreated()
+- 19:49:19.922 INFO: GET 200 /informes.php
+- 19:49:19.922 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/informes.php
+- 19:50:20.047 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/informes.php
+- 19:50:20.562 DEBUG: OnContextCreated()
+- 19:50:20.141 INFO: GET 200 /Inicio.php
+- 19:50:21.219 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/Inicio.php
+- 19:50:22.281 DEBUG: OnLoadingStateChange: loading=1, url=http://127.0.0.1:55156/Inicio.php
+- 19:50:22.859 DEBUG: OnContextCreated()
+- 19:50:22.438 INFO: GET 200 /ayuda.php
+- 19:50:22.485 DEBUG: OnLoadingStateChange: loading=0, url=http://127.0.0.1:55156/ayuda.php
+- 19:57:44.485 DEBUG: WM_DESTROY
+- 19:57:44.485 DEBUG: RemoveBrowserWindow(): hwnd = 1640404
+- 19:57:44.485 INFO: Stopping Mongoose web server
+- 19:57:44.485 DEBUG: Mongoose webserver stopped immediately
+- 19:57:44.500 DEBUG: OnBeforeClose() hwnd=12192584
+- 19:57:44.500 DEBUG: RemoveBrowserWindow(): hwnd = 12192584
+- 19:57:44.500 DEBUG: GetBrowserWindow(): not found, hwnd = 12192584
+- 19:57:44.500 WARNING: RemoveBrowserWindow() failed: GetBrowserWindow() failed
+- 19:57:44.500 DEBUG: Calling CefQuitMessageLoop()
+- 19:57:44.703 INFO: Ended application
+- 19:57:44.703 INFO: --------------------------------------------------------
