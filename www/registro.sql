@@ -561,7 +561,7 @@ INSERT INTO `actividades` (`id`, `usuario_id`, `accion`, `detalle`, `fecha`) VAL
 CREATE TABLE `bienes_publicos` (
   `id` int(11) NOT NULL,
   `codigo_unico` varchar(50) NOT NULL,
-  `tipo_bien` enum('Mueble','Inmueble',) NOT NULL,
+  `tipo_bien` enum('Mueble','Inmueble') NOT NULL,
   `subcategoria` varchar(100) DEFAULT NULL,
   `descripcion` text NOT NULL,
   `fecha_adquisicion` date NOT NULL,
