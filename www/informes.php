@@ -1,4 +1,5 @@
 <?php
+// Incluye la conexión a la base de datos
 include('conexion.php');
 $con = conectar();
 
@@ -13,25 +14,35 @@ function registrar_actividad($con, $accion, $detalle = '') {
     mysqli_stmt_execute($stmt);
 }
 
-// Obtener unidades
+// Obtiene la lista de unidades para los filtros de informes
 $unidades = [
-    'Patrimonio', 'Prensa', 'Presidencia', 'Administración', 'Recursos Humanos',
-    'Almacén', 'Escuela de Música', 'Escuela de Artes Escénicas', 'Escuela de Artes Plásticos',
+    'Gerencia de Patrimonio Cultural.', 'Gerencia de Promoción y Difusión Cultural', 'Presidencia', 'Gerencia de Administración', 'Recursos Humanos',
+    'Deposito', 'Escuela de Música', 'Escuela de Artes Escénicas', 'Escuela de Artes Plásticos',
     'Auditorio', 'Banda del estado barinas', 'Ateneo',
     'No Ubicados'
 ];
 
-// Obtener tipo y unidad seleccionados
+// Obtiene las subcategorías únicas para los filtros
+$subcategorias_disponibles = [];
+$sql_subcat = "SELECT DISTINCT subcategoria FROM bienes_publicos ORDER BY subcategoria ASC";
+$res_subcat = mysqli_query($con, $sql_subcat);
+while ($row = mysqli_fetch_assoc($res_subcat)) {
+    if ($row['subcategoria']) $subcategorias_disponibles[] = $row['subcategoria'];
+}
+
+// Obtiene los valores seleccionados en los filtros
 $tipo_sel = isset($_GET['tipo']) ? $_GET['tipo'] : '';
 $unidad_sel = isset($_GET['unidad_trabajo']) ? $_GET['unidad_trabajo'] : '';
+$subcat_sel = isset($_GET['subcategoria']) ? $_GET['subcategoria'] : '';
 
-// Obtener fechas disponibles según tipo y unidad
+// Obtiene las fechas disponibles según los filtros seleccionados
 $fechas_disponibles = [];
 $años_disponibles = [];
 if ($tipo_sel && $unidad_sel) {
     $tabla = 'bienes_publicos';
     $campo_fecha = 'fecha_adquisicion';
     $campo_estado = '';
+    // Define el estado según el tipo de informe
     if ($tipo_sel == 'BM-1') {
         $campo_estado = "AND estado = 'Incorporado'";
     } elseif ($tipo_sel == 'BM-2') {
@@ -56,6 +67,22 @@ if ($tipo_sel && $unidad_sel) {
     mysqli_stmt_bind_param($stmt_años, "s", $unidad_sel);
     mysqli_stmt_execute($stmt_años);
     $res_años = mysqli_stmt_get_result($stmt_años);
+    while ($row = mysqli_fetch_assoc($res_años)) {
+        $años_disponibles[] = $row['año'];
+    }
+} else {
+    // Si no hay selección, muestra todos los meses y años posibles
+    $tabla = 'bienes_publicos';
+    $campo_fecha = 'fecha_adquisicion';
+    // Meses
+    $sql_fechas = "SELECT DISTINCT DATE_FORMAT($campo_fecha, '%Y-%m') as mes FROM $tabla ORDER BY mes DESC";
+    $res_fechas = mysqli_query($con, $sql_fechas);
+    while ($row = mysqli_fetch_assoc($res_fechas)) {
+        $fechas_disponibles[] = $row['mes'];
+    }
+    // Años
+    $sql_años = "SELECT DISTINCT YEAR($campo_fecha) as año FROM $tabla ORDER BY año DESC";
+    $res_años = mysqli_query($con, $sql_años);
     while ($row = mysqli_fetch_assoc($res_años)) {
         $años_disponibles[] = $row['año'];
     }
@@ -85,8 +112,6 @@ if (isset($_GET['exportar']) && $_GET['exportar'] === 'pdf' && isset($_GET['tipo
     header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="'.$nombre_pdf.'"');
     $pdf->Output($nombre_pdf, 'D');
-    // Cerrar ventana después de descargar el PDF
-    echo '<script>window.close();</script>';
     exit;
 }
 
@@ -121,161 +146,162 @@ function generarEncabezado($modelo) {
     ';
 }
 
-function generarBM1($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '') {
+function generarBM1($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '', $subcat = '') {
     $fecha_informe = date('Y-m-d');
-    $html = generarEncabezado('BM-1');
-    $html .= '
+    $html = '
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
         <tr>
-            <td colspan="13" style="text-align:center;"><strong>INVENTARIO DE BIENES MUEBLES (MB-01)</strong></td>
+            <td colspan="9" style="text-align:center;font-weight:bold;font-size:16px;">
+                <img src="logo_iaceb.png" alt="Logo IACEB" style="height:40px;vertical-align:middle;float:left;">
+                INVENTARIO DE BIENES MUEBLES (MB-01)
+                <img src="logo_barinas.png" alt="Logo Barinas" style="height:40px;vertical-align:middle;float:right;">
+            </td>
         </tr>
         <tr>
-            <td colspan="13">Entidad Propietaria:  GOBERNACIÓN DEL ESTADO BARINAS				
-</td>
+            <td colspan="9">Entidad Propietaria: <b>GOBERNACIÓN DEL ESTADO BARINAS</b></td>
         </tr>
         <tr>
-            <td colspan="10">Sector Presupuestario: DIRECCION Y COORDINACION EJECUTIVA</td>
-            <td colspan="4">Servicio:'.htmlspecialchars($unidad_trabajo).'</td></td></td>
+            <td colspan="6">Sector Presupuestario: <b>DIRECCION Y COORDINACION EJECUTIVA</b></td>
+            <td colspan="3">Servicio:<b>'.htmlspecialchars($unidad_trabajo).'</b></td>
         </tr>
         <tr>
-            <td colspan="10">Unidad de trabajo: INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS</td>
-             <td colspan="4">Código: 01.07.01.01</td>
+            <td colspan="6">Unidad de trabajo: <b>INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS</b></td>
+            <td colspan="3">Código: <b>01.07.01.01</b></td>
         </tr>
         <tr>
-            <td colspan="4">Estado: BARINAS</td>
-            <td colspan="4">Municipio: BARINAS</td>
-            <td colspan="4">Parroquia: BARINAS</td>
-        </tr>
-         <td colspan="13" style="text-align:letf;">Fecha: '.htmlspecialchars($fecha_informe).'</td>
-        <tr>
-            <th colspan="3" style="text-align:center;">CLASIFICACION<br>(CODIGO)</th>
-            <th rowspan="2">N°. de Ident.</th>
-            <th rowspan="2">Cant.</th>
-            <th rowspan="2" colspan="5">NOMBRE Y DESCRIPCIÓN DE LOS ELEMENTOS</th>
-            <th rowspan="2">Costo de Adquisición Bs.</th>
-            <th rowspan="2">Valor Estimado Bs.</th>
+            <td colspan="3">Estado: <b>BARINAS</b></td>
+            <td colspan="3">Municipio: <b>BARINAS</b></td>
+            <td colspan="3">Parroquia: <b>BARINAS</b></td>
         </tr>
         <tr>
-            <th>Grup.</th>
-            <th>Sub-Gru.</th>
-            <th>Secc.</th>
-        </tr>';
-
-    // Modifica la consulta para filtrar por año si $año está presente
+            <td colspan="9">Fecha: <b>'.htmlspecialchars($fecha_informe).'</b></td>
+        </tr>
+    </table>
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr>
+            <th style="text-align:center;">Grup.</th>
+            <th style="text-align:center;">Sub-Gru.</th>
+            <th style="text-align:center;">Secc.</th>
+            <th style="text-align:center;">Nº de Ident.</th>
+            <th style="text-align:center;">Cant.</th>
+            <th style="text-align:center;">NOMBRE Y DESCRIPCIÓN DE LOS ELEMENTOS</th>
+            <th style="text-align:center;">Costo de<br>Adquisición Bs.</th>
+            <th style="text-align:center;">Valor<br>Estimado Bs.</th>
+        </tr>
+    ';
+    // Modifica la consulta para filtrar por año y subcategoría si están presentes
+    $where = "WHERE estado = 'Incorporado' AND ubicacion = ?";
+    $params = [$unidad_trabajo];
+    $types = "s";
     if ($año) {
-        $sql = "SELECT subcategoria, codigo_unico, descripcion, cantidad, precio_adquisicion, estado_conservacion 
-                FROM bienes_publicos 
-                WHERE estado = 'Incorporado' 
-                AND ubicacion = ? 
-                AND YEAR(fecha_adquisicion) = ?";
-        $stmt = mysqli_prepare($con, $sql);
-        mysqli_stmt_bind_param($stmt, "si", $unidad_trabajo, $año);
-    } else {
-        $sql = "SELECT subcategoria, codigo_unico, descripcion, cantidad, precio_adquisicion, estado_conservacion 
-                FROM bienes_publicos 
-                WHERE estado = 'Incorporado' 
-                AND ubicacion = ? 
-                AND DATE_FORMAT(fecha_adquisicion, '%Y-%m') = ?";
-        $stmt = mysqli_prepare($con, $sql);
-        mysqli_stmt_bind_param($stmt, "ss", $unidad_trabajo, $fecha);
+        $where .= " AND YEAR(fecha_adquisicion) = ?";
+        $params[] = $año;
+        $types .= "i";
+    } elseif ($fecha) {
+        $where .= " AND DATE_FORMAT(fecha_adquisicion, '%Y-%m') = ?";
+        $params[] = $fecha;
+        $types .= "s";
     }
+    if ($subcat) {
+        $where .= " AND subcategoria = ?";
+        $params[] = $subcat;
+        $types .= "s";
+    }
+    $sql = "SELECT subcategoria, codigo_unico, descripcion, cantidad, precio_adquisicion, estado_conservacion 
+            FROM bienes_publicos 
+            $where";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
 
     $total = 0;
     while ($row = mysqli_fetch_assoc($result)) {
         $total += $row['precio_adquisicion'];
-        // Extraer clasificación
         $grupo = $subgrupo = '';
         $seccion = '0';
         if (preg_match('/^(\d+)-(\d+)(?:-(\d+))?:/', $row['subcategoria'], $matches)) {
             $grupo = $matches[1];
             $subgrupo = $matches[2];
-            if (isset($matches[3])) {
-                $seccion = $matches[3];
-            }
+         
         }
         $html .= '
         <tr>
-            <td>'.htmlspecialchars($grupo).'</td>
-            <td>'.htmlspecialchars($subgrupo).'</td>
-            <td>'.htmlspecialchars($seccion).'</td>
-            <td>'.htmlspecialchars($row['codigo_unico']).'</td>
-            <td>'.htmlspecialchars($row['cantidad'] ?? 1).'</td>
-            <td colspan="5">'.htmlspecialchars($row['descripcion']).'</td>
-            <td>'.number_format($row['precio_adquisicion'], 2, ',', '.').'</td>
-            <td>'.number_format($row['precio_adquisicion'], 2, ',', '.').'</td>
+            <td style="text-align:center;">'.htmlspecialchars($grupo).'</td>
+            <td style="text-align:center;">'.htmlspecialchars($subgrupo).'</td>
+            <td style="text-align:center;">0</td>
+            <td style="text-align:center;">'.htmlspecialchars($row['codigo_unico']).'</td>
+            <td style="text-align:center;">'.htmlspecialchars($row['cantidad'] ?? 1).'</td>
+            <td>'.htmlspecialchars($row['descripcion']).'</td>
+            <td style="text-align:right;">'.number_format($row['precio_adquisicion'], 2, ',', '').'</td>
+            <td style="text-align:right;">'.number_format($row['precio_adquisicion'], 2, ',', '').'</td>
         </tr>';
     }
     $html .= '
         <tr>
-            <td colspan="11" style="text-align: right;">Sub-Total</td>
-            <td colspan="2">'.number_format($total, 2, ',', '.').'</td>
+            <td colspan="6" style="text-align:right;">Sub-Total</td>
+            <td colspan="2" style="text-align:right;">'.number_format($total, 2, ',', '').'</td>
         </tr>
+    </table>
+    <br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:30px;">
         <tr>
-            <td colspan="13" style="text-align: center;">';
-    // Cambiar firmas: siempre mostrar ambas partes
-    $html .= '
-        <table width="100%" style="margin-top:20px;">
-            <tr>
-                <td style="width:50%;text-align:center;">
-                    ___________________________<br>
-                    OFICINA DE BIENES Y SERVICIOS
-                </td>
-                <td style="width:50%;text-align:center;">
-                    ___________________________<br>
-                    JEFE DE LA UNIDAD DE TRABAJO O DEPENDENCIA
-                </td>
-            </tr>
-        </table>
-    ';
-    $html .= '</td>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                OFICINA DE BIENES Y SERVICIOS
+            </td>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                JEFE DE LA UNIDAD DE TRABAJO O DEPENDENCIA
+            </td>
         </tr>
-    </table>';
+    </table>
+    ';
     return $html;
 }
 
-function generarBM2($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '') {
+// --- BM-2 ---
+function generarBM2($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '', $subcat = '') {
     $fecha_informe = date('Y-m-d');
     $html = generarEncabezado('BM-2');
     $html .= '
         <tr>
-            <td colspan="13" style="text-align:center;"><strong>RELACIÓN DEL MOVIMIENTO DE BIENES MUEBLES (MB-02)</strong></td>
+            <td colspan="11" style="text-align:center;font-weight:bold;font-size:16px;">RELACIÓN DEL MOVIMIENTO DE BIENES MUEBLES (MB-02)</td>
         </tr>
         <tr>
-            <td colspan="13">Entidad Propietaria:  GOBERNACIÓN DEL ESTADO BARINAS				
-</td>
+            <td colspan="11">Entidad Propietaria: <b>GOBERNACIÓN DEL ESTADO BARINAS</b></td>
         </tr>
         <tr>
-            <td colspan="6">Sector Presupuestario: DIRECCION Y COORDINACION EJECUTIVA</td>
-            <td colspan="7">Servicio:'.htmlspecialchars($unidad_trabajo).'</td></td></td>
+            <td colspan="8">Sector Presupuestario: <b>DIRECCION Y COORDINACION EJECUTIVA</b></td>
+            <td colspan="3">Servicio:<b>'.htmlspecialchars($unidad_trabajo).'</b></td>
         </tr>
         <tr>
-            <td colspan="10">Unidad de trabajo: INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS </td>
-            <td colspan="4">Código: 01.07.01.01</td>
+            <td colspan="8">Unidad de trabajo: <b>INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS</b></td>
+            <td colspan="3">Código: <b>01.07.01.01</b></td>
         </tr>
         <tr>
-            <td colspan="4">Estado: BARINAS</td>
-            <td colspan="5">Municipio: BARINAS</td>
-            <td colspan="4">Parroquia: BARINAS</td>
+            <td colspan="3">Estado: <b>BARINAS</b></td>
+            <td colspan="3">Municipio: <b>BARINAS</b></td>
+            <td colspan="3">Parroquia: <b>BARINAS</b></td>
+            <td colspan="2"></td>
         </tr>
         <tr>
-            <td colspan="13" style="text-align:Letf;">Fecha: '.htmlspecialchars($fecha_informe).'</td>
+            <td colspan="11">Fecha: <b>'.htmlspecialchars($fecha_informe).'</b></td>
         </tr>
+    </table>
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
         <tr>
-            <td colspan="13" style="padding:0;">
-                <table border="1" cellpadding="3" style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <tr>
-                        <th style="width:6%;">Grup.</th>
-                        <th style="width:7%;">Sub-Gru.</th>
-                        <th style="width:7%;">Secc.</th>
-                        <th style="width:10%;">N°. de Ident.</th>
-                        <th style="width:6%;">Cant.</th>
-                        <th style="width:13%;">Concepto del Movimiento</th>
-                        <th style="width:28%;">Nombre y Descripción de los Elementos</th>
-                        <th style="width:11%;">Incorporaciones<br>(Bs.)</th>
-                        <th style="width:12%;">Desincorporaciones<br>(Bs.)</th>
-                    </tr>';
-
+            <th style="text-align:center;">Grup.</th>
+            <th style="text-align:center;">Sub-Gru.</th>
+            <th style="text-align:center;">Secc.</th>
+            <th style="text-align:center;">Nº de Ident.</th>
+            <th style="text-align:center;">Cant.</th>
+            <th style="text-align:center;">Concepto del Movimiento</th>
+            <th style="text-align:center;">Nombre y Descripción de los Elementos</th>
+            <th style="text-align:center;">Incorporaciones<br>(Bs.)</th>
+            <th style="text-align:center;">Desincorporaciones<br>(Bs.)</th>
+        </tr>
+    ';
     // Agregar 'estado' al SELECT
     if ($año) {
         $sql = "SELECT subcategoria, codigo_unico, descripcion, cantidad, precio_adquisicion, estado 
@@ -299,121 +325,120 @@ function generarBM2($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año
 
     $total_incorp = 0;
     $total_desinc = 0;
-    $filas = 0;
     while ($row = mysqli_fetch_assoc($result)) {
         $concepto = (isset($row['estado']) && $row['estado'] === 'Incorporado') ? 'Incorporación' : 'Desincorporación';
         $valor = $row['precio_adquisicion'] * (isset($row['cantidad']) ? $row['cantidad'] : 1);
-        $grupo = $subgrupo = $seccion = '';
+        $grupo = $subgrupo = '';
+        $seccion = '0';
         if (preg_match('/^(\d+)-(\d+)(?:-(\d+))?:/', $row['subcategoria'], $matches)) {
             $grupo = $matches[1];
             $subgrupo = $matches[2];
-            $seccion = isset($matches[3]) ? $matches[3] : '';
+            // Secc. siempre 0
         }
-        $incorp_val = $concepto === 'Incorporación' ? number_format($valor, 2, ',', '.') . ' Bs.' : '0,00 Bs.';
-        $desinc_val = $concepto === 'Desincorporación' ? number_format($valor, 2, ',', '.') . ' Bs.' : '0,00 Bs.';
+        $incorp_val = $concepto === 'Incorporación' ? number_format($valor, 2, ',', '.') . ' Bs.' : '';
+        $desinc_val = $concepto === 'Desincorporación' ? number_format($valor, 2, ',', '.') . ' Bs.' : '';
         $html .= '
-                    <tr>
-                        <td style="text-align:center;">'.htmlspecialchars($grupo).'</td>
-                        <td style="text-align:center;">'.htmlspecialchars($subgrupo).'</td>
-                        <td style="text-align:center;">'.htmlspecialchars($seccion).'</td>
-                        <td style="text-align:center;">'.htmlspecialchars($row['codigo_unico']).'</td>
-                        <td style="text-align:center;">'.htmlspecialchars($row['cantidad'] ?? 1).'</td>
-                        <td style="text-align:center;">'.$concepto.'</td>
-                        <td>'.htmlspecialchars($row['descripcion']).'</td>
-                        <td style="text-align:right;">'.$incorp_val.'</td>
-                        <td style="text-align:right;">'.$desinc_val.'</td>
-                    </tr>';
+        <tr>
+            <td style="text-align:center;">'.htmlspecialchars($grupo).'</td>
+            <td style="text-align:center;">'.htmlspecialchars($subgrupo).'</td>
+            <td style="text-align:center;">0</td>
+            <td style="text-align:center;">'.htmlspecialchars($row['codigo_unico']).'</td>
+            <td style="text-align:center;">'.htmlspecialchars($row['cantidad'] ?? 1).'</td>
+            <td style="text-align:center;">'.$concepto.'</td>
+            <td>'.htmlspecialchars($row['descripcion']).'</td>
+            <td style="text-align:right;">'.$incorp_val.'</td>
+            <td style="text-align:right;">'.$desinc_val.'</td>
+        </tr>';
         if ($concepto === 'Incorporación') $total_incorp += $valor;
         if ($concepto === 'Desincorporación') $total_desinc += $valor;
-        $filas++;
-    }
-    for ($i = $filas; $i < 10; $i++) {
-        $html .= '
-                    <tr>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                        <td>&nbsp;</td>
-                        <td style="text-align:right;">0,00</td>
-                        <td style="text-align:right;">0,00</td>
-                    </tr>';
     }
     $html .= '
-                    <tr>
-                        <td colspan="7" style="text-align: right;"><b>Sub-Total</b></td>
-                        <td style="text-align:right;"><b>'.number_format($total_incorp, 2, ',', '.').'</b></td>
-                        <td style="text-align:right;"><b>'.number_format($total_desinc, 2, ',', '.').'</b></td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
         <tr>
-            <td colspan="13" style="text-align:center;padding-top:20px;">
-                <table width="100%">
-                    <tr>
-                        <td style="width:50%;text-align:center;">
-                            ___________________________<br>
-                            OFICINA DE BIENES Y SERVICIOS
-                        </td>
-                        <td style="width:50%;text-align:center;">
-                            ___________________________<br>
-                            JEFE DE LA UNIDAD DE TRABAJO O DEPENDENCIA
-                        </td>
-                    </tr>
-                </table>
+            <td colspan="7" style="text-align:right;">Sub-Total</td>
+            <td style="text-align:right;">'.number_format($total_incorp, 2, ',', '.').'</td>
+            <td style="text-align:right;">'.number_format($total_desinc, 2, ',', '.').'</td>
+        </tr>
+    </table>
+    <br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:30px;">
+        <tr>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                OFICINA DE BIENES Y SERVICIOS
+            </td>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                JEFE DE LA UNIDAD DE TRABAJO O DEPENDENCIA
             </td>
         </tr>
-    </table>';
+    </table>
+    ';
     return $html;
 }
 
 function generarBM3($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '') {
     $fecha_informe = date('Y-m-d');
-    $html = generarEncabezado('BM-3');
-    $html .= '
+    $html = '
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
         <tr>
-            <td colspan="12" style="text-align:center;"><strong>RELACIÓN DE BIENES MUEBLES FALTANTES (MB-03)</strong></td>
+            <td style="width:15%;text-align:left;">
+                <img src="logo_iaceb.png" alt="Logo IACEB" style="height:50px;">
+            </td>
+            <td style="width:70%;text-align:center;font-weight:bold;font-size:16px;">
+                INSTITUTO AUTÓNOMO DE CULTURA DEL ESTADO BARINAS<br>
+                CONTROL DE BIENES
+            </td>
+            <td style="width:15%;text-align:right;">
+                <img src="logo_barinas.png" alt="Logo Barinas" style="height:50px;">
+            </td>
         </tr>
         <tr>
-            <td colspan="12">Entidad Propietaria:  GOBERNACIÓN DEL ESTADO BARINAS				
-</td>
+            <td colspan="3" style="text-align:right;font-size:13px;">MODELO: BM-3</td>
+        </tr>
+    </table>
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr>
+            <td colspan="9" style="font-weight:bold;text-align:center;">RELACIÓN DE BIENES MUEBLES FALTANTES (MB-03)</td>
         </tr>
         <tr>
-            <td colspan="10">Sector Presupuestario: DIRECCION Y COORDINACION EJECUTIVA</td>
-            <td colspan="4">Servicio:'.htmlspecialchars($unidad_trabajo).'</td></td>'.htmlspecialchars($unidad_trabajo).'</td></td>
-    
-        <tr>
-            <td colspan="10">Unidad de trabajo: INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS </td>
-             <td colspan="4">Código: 01.07.01.01</td>
+            <td colspan="9">Entidad Propietaria: <b>GOBERNACIÓN DEL ESTADO BARINAS</b></td>
         </tr>
         <tr>
-            <td colspan="4">Estado:Barinas</td>
-            <td colspan="4">Municipio:Barinas</td>
-            <td colspan="4">Parroquia: Barinas</td>
+            <td colspan="6">Sector Presupuestario: <b>DIRECCION Y COORDINACION EJECUTIVA</b></td>
+            <td colspan="3">Servicio:<b>'.htmlspecialchars($unidad_trabajo).'</b></td>
         </tr>
         <tr>
-            <td colspan="13" style="text-align:Letf;">Fecha: '.htmlspecialchars($fecha_informe).'</td>
+            <td colspan="6">Unidad de trabajo: <b>INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS</b></td>
+            <td colspan="3">Código: <b>01.07.01.01</b></td>
         </tr>
         <tr>
-            <td colspan="13">NUMERO DE COMPROBANTE</td>
-        </tr>
-            <td colspan="12" style="text-align:center;"><strong>RELACIÓN DE BIENES FALTANTES</strong></td>
+            <td colspan="3">Estado: <b>Barinas</b></td>
+            <td colspan="3">Municipio: <b>Barinas</b></td>
+            <td colspan="3">Parroquia: <b>Barinas</b></td>
         </tr>
         <tr>
-            <th>Gru</th>
-            <th>Su-G</th>
-            <th>Sec.</th>
-            <th>Nº de Ident.</th>
-            <th colspan="4">NOMBRE Y DESCRIPCIÓN</th>
-            <th>CANTIDAD</th>
-            <th>VALOR UNITARIO</th>
-            <th>DIFERENCIA</th>
-            <th>VALOR TOTAL</th>
-        </tr>';
-
+            <td colspan="9">Fecha: <b>'.htmlspecialchars($fecha_informe).'</b></td>
+        </tr>
+        <tr>
+            <td colspan="9">NUMERO DE COMPROBANTE</td>
+        </tr>
+        <tr>
+            <td colspan="9" style="font-weight:bold;text-align:center;">RELACIÓN DE BIENES FALTANTES</td>
+        </tr>
+    </table>
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr>
+            <th style="text-align:center;">Gru</th>
+            <th style="text-align:center;">Su-G</th>
+            <th style="text-align:center;">Sec.</th>
+            <th style="text-align:center;">Nº de Ident.</th>
+            <th style="text-align:center;">NOMBRE Y DESCRIPCIÓN</th>
+            <th style="text-align:center;">CANTIDAD</th>
+            <th style="text-align:center;">VALOR UNITARIO</th>
+            <th style="text-align:center;">DIFERENCIA</th>
+            <th style="text-align:center;">VALOR TOTAL</th>
+        </tr>
+    ';
     // Cambia mostrarFormato para pasar el año si está presente
     if ($año) {
         $sql = "SELECT subcategoria, codigo_unico, descripcion, precio_adquisicion, estado_conservacion 
@@ -436,57 +461,102 @@ function generarBM3($con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año
     $result = mysqli_stmt_get_result($stmt);
 
     while ($row = mysqli_fetch_assoc($result)) {
-        // Extraer clasificación
-        $grupo = $subgrupo = $seccion = '';
+        $grupo = $subgrupo = '';
+        $seccion = '0';
         if (preg_match('/^(\d+)-(\d+)(?:-(\d+))?:/', $row['subcategoria'], $matches)) {
             $grupo = $matches[1];
             $subgrupo = $matches[2];
-            $seccion = isset($matches[3]) ? $matches[3] : '';
+            // Secc. siempre 0
         }
         $html .= '
         <tr>
-            <td>'.htmlspecialchars($grupo).'</td>
-            <td>'.htmlspecialchars($subgrupo).'</td>
-            <td>'.htmlspecialchars($seccion).'</td>
-            <td>'.htmlspecialchars($row['codigo_unico']).'</td>
-            <td colspan="4">'.htmlspecialchars($row['descripcion']).'</td>
-            <td>1</td>
-            <td>'.number_format($row['precio_adquisicion'], 2, ',', '.').'</td>
-            <td>'.number_format($row['precio_adquisicion'], 2, ',', '.').'</td>
-            <td>'.number_format($row['precio_adquisicion'], 2, ',', '.').'</td>
+            <td style="text-align:center;">'.htmlspecialchars($grupo).'</td>
+            <td style="text-align:center;">'.htmlspecialchars($subgrupo).'</td>
+            <td style="text-align:center;">0</td>
+            <td style="text-align:center;">'.htmlspecialchars($row['codigo_unico']).'</td>
+            <td>'.htmlspecialchars($row['descripcion']).'</td>
+            <td style="text-align:center;">1</td>
+            <td style="text-align:right;">'.number_format($row['precio_adquisicion'], 2, ',', '').'</td>
+            <td style="text-align:right;">'.number_format($row['precio_adquisicion'], 2, ',', '').'</td>
+            <td style="text-align:right;">'.number_format($row['precio_adquisicion'], 2, ',', '').'</td>
         </tr>';
     }
     $html .= '
         <tr>
-            <td colspan="8">OBSERVACIONES:</td>
-            <td colspan="4">FALTANTES DETERMINADOS POR:</td>
+            <td colspan="2" style="font-weight:bold;">OBSERVACIONES:</td>
+            <td colspan="7">FALTANTES DETERMINADOS POR:</td>
         </tr>
+    </table>
+    <br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:30px;">
         <tr>
-            <td colspan="12" style="text-align: center;">';
-    // Mostrar ambas firmas también en BM-3
-    $html .= '
-        <table width="100%" style="margin-top:20px;">
-            <tr>
-                <td style="width:50%;text-align:center;">
-                    ___________________________<br>
-                    OFICINA DE BIENES Y SERVICIOS
-                </td>
-                <td style="width:50%;text-align:center;">
-                    ___________________________<br>
-                    RESPONSABLE DE LA UNIDAD DE TRABAJO
-                </td>
-            </tr>
-        </table>
-    ';
-    $html .= '</td>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                OFICINA DE BIENES Y SERVICIOS
+            </td>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                RESPONSABLE DE LA UNIDAD DE TRABAJO
+            </td>
         </tr>
-    </table>';
+    </table>
+    ';
     return $html;
 }
 
 function generarBM4($con, $unidad_trabajo, $fecha, $modo_pdf = false, $año = '') {
     $fecha_informe = date('Y-m-d');
-
+    $html = '
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
+        <tr>
+            <td style="width:15%;text-align:left;">
+                <img src="logo_iaceb.png" alt="Logo IACEB" style="height:50px;">
+            </td>
+            <td style="width:70%;text-align:center;font-weight:bold;font-size:16px;">
+                INSTITUTO AUTÓNOMO DE CULTURA DEL ESTADO BARINAS<br>
+                CONTROL DE BIENES
+            </td>
+            <td style="width:15%;text-align:right;">
+                <img src="logo_barinas.png" alt="Logo Barinas" style="height:50px;">
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align:right;font-size:13px;">MODELO: BM-4</td>
+        </tr>
+    </table>
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr>
+            <td colspan="6" style="font-weight:bold;text-align:center;">RESUMEN DE LA CUENTA DE BIENES MUEBLES (MB-04)</td>
+        </tr>
+        <tr>
+            <td colspan="6">Entidad Propietaria: <b>GOBERNACIÓN DEL ESTADO BARINAS</b></td>
+        </tr>
+        <tr>
+            <td colspan="4">Sector Presupuestario: <b>DIRECCION Y COORDINACION EJECUTIVA</b></td>
+            <td colspan="2">Servicio:<b>'.htmlspecialchars($unidad_trabajo).'</b></td>
+        </tr>
+        <tr>
+            <td colspan="4">Unidad de trabajo: <b>INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS</b></td>
+            <td colspan="2">Código: <b>01.07.01.01</b></td>
+        </tr>
+        <tr>
+            <td>Estado: <b>BARINAS</b></td>
+            <td>Municipio: <b>BARINAS</b></td>
+            <td>Parroquia: <b>BARINAS</b></td>
+            <td colspan="3"></td>
+        </tr>
+        <tr>
+            <td colspan="6">Fecha: <b>'.htmlspecialchars($fecha_informe).'</b></td>
+        </tr>
+    </table>
+    <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr>
+            <th style="text-align:center;">CONCEPTO</th>
+            <th style="text-align:center;">MAS (Bs.)</th>
+            <th style="text-align:center;">MENOS (Bs.)</th>
+        </tr>
+    ';
+    // ...calculos...
     // Filtros de fecha
     $where_fecha = '';
     if ($año) {
@@ -494,8 +564,7 @@ function generarBM4($con, $unidad_trabajo, $fecha, $modo_pdf = false, $año = ''
     } elseif ($fecha) {
         $where_fecha = "AND DATE_FORMAT(fecha_adquisicion, '%Y-%m') = '".mysqli_real_escape_string($con, $fecha)."'";
     }
-
-    // Existencia anterior (valor de bienes incorporados antes del mes/año)
+    // Existencia anterior
     $existencia_anterior = 0;
     if ($fecha || $año) {
         $fecha_limite = $año ? $año.'-01-01' : ($fecha.'-01');
@@ -506,131 +575,89 @@ function generarBM4($con, $unidad_trabajo, $fecha, $modo_pdf = false, $año = ''
         $res_prev = mysqli_stmt_get_result($stmt_prev);
         $existencia_anterior = floatval(mysqli_fetch_assoc($res_prev)['total']);
     }
-
-    // Incorporaciones del mes/año (valor)
+    // Incorporaciones
     $sql_incorp = "SELECT SUM(precio_adquisicion * cantidad) AS total FROM bienes_publicos WHERE estado = 'Incorporado' AND ubicacion = ? $where_fecha";
     $stmt_incorp = mysqli_prepare($con, $sql_incorp);
     mysqli_stmt_bind_param($stmt_incorp, "s", $unidad_trabajo);
     mysqli_stmt_execute($stmt_incorp);
     $res_incorp = mysqli_stmt_get_result($stmt_incorp);
     $incorporados = floatval(mysqli_fetch_assoc($res_incorp)['total']);
-
-    // Desincorporaciones (valor)
+    // Desincorporaciones
     $sql_desinc = "SELECT SUM(precio_adquisicion * cantidad) AS total FROM bienes_publicos WHERE estado = 'Desincorporado' AND ubicacion = ? $where_fecha";
     $stmt_desinc = mysqli_prepare($con, $sql_desinc);
     mysqli_stmt_bind_param($stmt_desinc, "s", $unidad_trabajo);
     mysqli_stmt_execute($stmt_desinc);
     $res_desinc = mysqli_stmt_get_result($stmt_desinc);
     $desincorporados = floatval(mysqli_fetch_assoc($res_desinc)['total']);
-
-    // Faltantes por investigar (valor)
+    // Faltantes por investigar
     $sql_falt = "SELECT SUM(precio_adquisicion * cantidad) AS total FROM bienes_publicos WHERE estado = 'En investigación' AND ubicacion = ? $where_fecha";
     $stmt_falt = mysqli_prepare($con, $sql_falt);
     mysqli_stmt_bind_param($stmt_falt, "s", $unidad_trabajo);
     mysqli_stmt_execute($stmt_falt);
     $res_falt = mysqli_stmt_get_result($stmt_falt);
     $faltantes = floatval(mysqli_fetch_assoc($res_falt)['total']);
-
-    // Existencia final (anterior + incorporados - desincorporados - faltantes)
+    // Existencia final
     $existencia_final = $existencia_anterior + $incorporados - $desincorporados - $faltantes;
 
-    $html = generarEncabezado('BM-4');
     $html .= '
         <tr>
-            <td colspan="13" style="text-align:center;font-weight:bold;font-size:15px;">RESUMEN DE LA CUENTA DE BIENES MUEBLES (MB-04)</td>
+            <td>EXISTENCIA ANTERIOR</td>
+            <td style="text-align:right;">'.number_format($existencia_anterior,2,'.','').' Bs.</td>
+            <td></td>
         </tr>
         <tr>
-            <td colspan="13">Entidad Propietaria:  GOBERNACIÓN DEL ESTADO BARINAS				
-</td>
+            <td>INCORPORACION EN EL MES DE LA CUENTA</td>
+            <td style="text-align:right;">'.number_format($incorporados,2,'.','').' Bs.</td>
+            <td></td>
         </tr>
         <tr>
-            <td colspan="10">Sector Presupuestario: DIRECCION Y COORDINACION EJECUTIVA</td>
-            <td colspan="3">Servicio:'.htmlspecialchars($unidad_trabajo).'</td></td></td>
-     
+            <td>DESINCORPORACIONES EN EL MES DE LA CUENTA POR TODOS LOS CONCEPTOS, CON EXCEPCION DEL 60. "FALTANTES DE BIENES POR INVESTIGAR"</td>
+            <td></td>
+            <td style="text-align:right;">'.number_format($desincorporados,2,'.','').' Bs.</td>
         </tr>
         <tr>
-            <td colspan="10">Unidad de trabajo: INSTITUTO AUTONOMO DE CULTURA DEL ESTADO BARINAS </td>
-            <td colspan="4">Código: 01.07.01.01</td>
-          <tr>
-           <tr>   
-            <td colspan="4">Estado: BARINAS</td>
-            <td colspan="4">Municipio: BARINAS</td>
-            <td colspan="4">Parroquia: BARINAS</td>
+            <td>DESINCORPORACIONES EN EL MES DE LA CUENTA POR EL CONCEPTO 60 "FALTANTES POR INVESTIGAR"</td>
+            <td></td>
+            <td style="text-align:right;">'.number_format($faltantes,2,'.','').' Bs.</td>
         </tr>
         <tr>
-            <td colspan="13" style="text-align:Letf;">Fecha: '.htmlspecialchars($fecha_informe).'</td>
+            <td>EXISTENCIA FINAL</td>
+            <td style="text-align:right;">'.number_format($existencia_final,2,'.','').' Bs.</td>
+            <td></td>
         </tr>
         <tr>
-            <td colspan="13" style="padding:0;">
-                <table border="1" cellpadding="4" style="width:100%;border-collapse:collapse;">
-                    <tr>
-                        <th style="width:65%;">CONCEPTO</th>
-                        <th style="width:17%;">MAS (Bs.)</th>
-                        <th style="width:18%;">MENOS (Bs.)</th>
-                    </tr>
-                    <tr>
-                        <td>EXISTENCIA ANTERIOR</td>
-                        <td style="text-align:center;">'.number_format($existencia_anterior,2,'.','').' Bs.</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>INCORPORACION EN EL MES DE LA CUENTA</td>
-                        <td style="text-align:center;">'.number_format($incorporados,2,'.','').' Bs.</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>DESINCORPORACIONES EN EL MES DE LA CUENTA POR TODOS LOS CONCEPTOS, CON EXCEPCION DEL 60. "FALTANTES DE BIENES POR INVESTIGAR"</td>
-                        <td></td>
-                        <td style="text-align:center;">'.number_format($desincorporados,2,'.','').' Bs.</td>
-                    </tr>
-                    <tr>
-                        <td>DESINCORPORACIONES EN EL MES DE LA CUENTA POR EL CONCEPTO 60 "FALTANTES POR INVESTIGAR"</td>
-                        <td></td>
-                        <td style="text-align:center;">'.number_format($faltantes,2,'.','').' Bs.</td>
-                    </tr>
-                    <tr>
-                        <td>EXISTENCIA FINAL</td>
-                        <td style="text-align:center;">'.number_format($existencia_final,2,'.','').' Bs.</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>TOTAL BS.</td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                </table>
+            <td>TOTAL BS.</td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+    <br>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:30px;">
+        <tr>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                OFICINA DE BIENES Y SERVICIOS
+            </td>
+            <td style="width:50%;text-align:center;">
+                <br><br>_____________________________<br>
+                JEFE DE LA UNIDAD DE TRABAJO O DEPENDENCIA
             </td>
         </tr>
-        <tr>
-            <td colspan="13" style="text-align:center;padding-top:30px;">
-                <table border="0" style="width:100%;">
-                    <tr>
-                        <td style="width:50%;text-align:center;">
-                            ___________________________<br>
-                            OFICINA DE BIENES Y SERVICIOS
-                        </td>
-                        <td style="width:50%;text-align:center;">
-                            ___________________________<br>
-                            JEFE DE LA UNIDAD DE TRABAJO O DEPENDENCIA
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>';
+    </table>
+    ';
     return $html;
 }
 
-function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '') {
+function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo_pdf = false, $año = '', $subcat = '') {
     switch ($tipo_informe) {
         case 'BM-1':
-            return generarBM1($con, $unidad_trabajo, $fecha, $modo_pdf, $año);
+            return generarBM1($con, $unidad_trabajo, $fecha, $modo_pdf, $año, $subcat);
         case 'BM-2':
-            return generarBM2($con, $unidad_trabajo, $fecha, $modo_pdf, $año);
+            return generarBM2($con, $unidad_trabajo, $fecha, $modo_pdf, $año, $subcat);
         case 'BM-3':
-            return generarBM3($con, $unidad_trabajo, $fecha, $modo_pdf, $año);
+            return generarBM3($con, $unidad_trabajo, $fecha, $modo_pdf, $año, $subcat);
         case 'BM-4':
-            return generarBM4($con, $unidad_trabajo, $fecha, $modo_pdf);
+            return generarBM4($con, $unidad_trabajo, $fecha, $modo_pdf, $año, $subcat);
         default:
             return '<p>Seleccione un tipo de informe válido.</p>';
     }
@@ -749,7 +776,7 @@ function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo
         <div class="filtros">
             <form method="GET">
                 <label for="tipo">Seleccionar informe:</label>
-                <select name="tipo" id="tipo" required onchange="this.form.submit()">
+                <select name="tipo" id="tipo" required>
                     <option value="">Seleccione un informe</option>
                     <option value="BM-1" <?= $tipo_sel == 'BM-1' ? 'selected' : '' ?>>BM-1: Inventario de Bienes Muebles</option>
                     <option value="BM-2" <?= $tipo_sel == 'BM-2' ? 'selected' : '' ?>>BM-2: Movimiento de Bienes</option>
@@ -758,16 +785,24 @@ function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo
                 </select>
                 <br>
                 <label for="unidad_trabajo">Unidad de Trabajo:</label>
-                <select name="unidad_trabajo" id="unidad_trabajo" required onchange="this.form.submit()">
+                <select name="unidad_trabajo" id="unidad_trabajo" required>
                     <option value="">Seleccione una unidad</option>
                     <?php foreach($unidades as $u): ?>
                         <option value="<?= htmlspecialchars($u) ?>" <?= $unidad_sel == $u ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <br>
+                <label for="subcategoria">Subcategoría:</label>
+                <select name="subcategoria" id="subcategoria">
+                    <option value="">Todas</option>
+                    <?php foreach($subcategorias_disponibles as $subcat): ?>
+                        <option value="<?= htmlspecialchars($subcat) ?>" <?= $subcat_sel == $subcat ? 'selected' : '' ?>><?= htmlspecialchars($subcat) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <br>
                 <label for="fecha">Mes:</label>
                 <select name="fecha" id="fecha">
-                    <option value="">Todos los meses</option>
+                    <option value="all" <?= (!isset($_GET['fecha']) || $_GET['fecha'] === 'all' || $_GET['fecha'] === '') ? 'selected' : '' ?>>Todos los meses</option>
                     <?php foreach($fechas_disponibles as $fecha): ?>
                         <option value="<?= $fecha ?>" <?= (isset($_GET['fecha']) && $_GET['fecha'] == $fecha) ? 'selected' : '' ?>>
                             <?= date('F Y', strtotime($fecha . '-01')) ?>
@@ -776,7 +811,7 @@ function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo
                 </select>
                 <label for="año">Año:</label>
                 <select name="año" id="año">
-                    <option value="">Todos los años</option>
+                    <option value="all" <?= (!isset($_GET['año']) || $_GET['año'] === 'all' || $_GET['año'] === '') ? 'selected' : '' ?>>Todos los años</option>
                     <?php foreach($años_disponibles as $año): ?>
                         <option value="<?= $año ?>" <?= (isset($_GET['año']) && $_GET['año'] == $año) ? 'selected' : '' ?>>
                             <?= $año ?>
@@ -784,13 +819,14 @@ function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo
                     <?php endforeach; ?>
                 </select>
                 <br>
-                <button type="submit">Generar Informe</button>
+                <button type="submit" name="generar" value="1">Generar Informe</button>
                 <?php
                 $pdf_url = "informes.php?tipo=" . urlencode($tipo_sel) . "&unidad_trabajo=" . urlencode($unidad_sel);
-                if (!empty($_GET['fecha'])) $pdf_url .= "&fecha=" . urlencode($_GET['fecha']);
-                if (!empty($_GET['año'])) $pdf_url .= "&año=" . urlencode($_GET['año']);
+                if (isset($_GET['fecha'])) $pdf_url .= "&fecha=" . urlencode($_GET['fecha']);
+                if (isset($_GET['año'])) $pdf_url .= "&año=" . urlencode($_GET['año']);
+                if (!empty($_GET['subcategoria'])) $pdf_url .= "&subcategoria=" . urlencode($_GET['subcategoria']);
                 $pdf_url .= "&exportar=pdf";
-                if ($tipo_sel && $unidad_sel && ($_GET['fecha'] || $_GET['año'])):
+                if ($tipo_sel && $unidad_sel && isset($_GET['generar'])):
                 ?>
                     <a href="<?= $pdf_url ?>" target="_blank" class="exportar-pdf">Exportar PDF</a>
                 <?php endif; ?>
@@ -798,10 +834,12 @@ function mostrarFormato($tipo_informe, $con, $unidad_trabajo, $fecha = '', $modo
         </div>
         <div>
             <?php
-            $fecha_param = isset($_GET['fecha']) ? $_GET['fecha'] : '';
-            $año_param = isset($_GET['año']) ? $_GET['año'] : '';
-            if ($tipo_sel && $unidad_sel && ($fecha_param || $año_param)) {
-                echo mostrarFormato($tipo_sel, $con, $unidad_sel, $fecha_param, false, $año_param);
+            $fecha_param = (isset($_GET['fecha']) && $_GET['fecha'] !== 'all') ? $_GET['fecha'] : '';
+            $año_param = (isset($_GET['año']) && $_GET['año'] !== 'all') ? $_GET['año'] : '';
+            $subcat_param = isset($_GET['subcategoria']) ? $_GET['subcategoria'] : '';
+            // Mostrar informe solo si se presionó "Generar Informe"
+            if (isset($_GET['generar']) && $tipo_sel && $unidad_sel) {
+                echo mostrarFormato($tipo_sel, $con, $unidad_sel, $fecha_param, false, $año_param, $subcat_param);
             } else {
                 echo '<p>Seleccione todos los parámetros para generar el informe.</p>';
             }

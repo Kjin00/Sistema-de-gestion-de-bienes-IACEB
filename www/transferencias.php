@@ -1,18 +1,21 @@
 <?php
+// Incluye la conexión a la base de datos y la librería TCPDF para generar PDFs
 include('conexion.php');
 require_once(__DIR__ . '/../tcpdf/tcpdf.php');
 
+// Conexión a la base de datos
 $con = conectar();
+// Variables para mensajes y datos
 $error = '';
 $success = '';
 $unidades = [
-    'Patrimonio', 'Prensa', 'Presidencia', 'Administración', 'Recursos Humanos',
-    'Almacén', 'Escuela de Música', 'Escuela de Artes Escénicas', 'Escuela de Artes Plásticos',
+    'Gerencia de Patrimonio Cultural.', 'Gerencia de Promoción y Difusión Cultural', 'Presidencia', 'Gerencia de Administración', 'Recursos Humanos',
+    'Deposito', 'Escuela de Música', 'Escuela de Artes Escénicas', 'Escuela de Artes Plásticos',
     'Auditorio', 'Banda del estado barinas', 'Ateneo',
     'No Ubicados'
 ];
 
-// Función para registrar actividad de usuario
+// Función para registrar actividad de usuario en la base de datos
 function registrar_actividad($con, $accion, $detalle = '') {
     if (!isset($_SESSION)) session_start();
     if (!isset($_SESSION['usuario_id'])) return;
@@ -23,7 +26,7 @@ function registrar_actividad($con, $accion, $detalle = '') {
     mysqli_stmt_execute($stmt);
 }
 
-// Obtener lista de bienes para el select
+// Obtiene la lista de bienes públicos para mostrar en el formulario de transferencia
 $bienes = [];
 $sql_bienes = "SELECT id, codigo_unico, descripcion, ubicacion, responsable_patrimonial FROM bienes_publicos ORDER BY codigo_unico ASC";
 $res_bienes = mysqli_query($con, $sql_bienes);
@@ -31,9 +34,10 @@ while ($b = mysqli_fetch_assoc($res_bienes)) {
     $bienes[] = $b;
 }
 
+// Procesa el formulario de transferencia de bien
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
     try {
-        // Validar clave de acción
+        // Valida la clave de acción del usuario
         if (!isset($_POST['clave_accion']) || empty($_POST['clave_accion'])) {
             throw new Exception("Debe ingresar la clave de acción para transferir.");
         }
@@ -56,12 +60,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
             throw new Exception("Clave de acción incorrecta.");
         }
 
-        // Obtener y validar datos del formulario usando código único
+        // Obtiene y valida los datos del formulario usando el código único del bien
         $codigo_unico = mysqli_real_escape_string($con, $_POST['codigo_unico']);
         $unidad_destino = mysqli_real_escape_string($con, $_POST['unidad_destino']);
         $responsable_destino = mysqli_real_escape_string($con, $_POST['responsable_destino']);
 
-        // Obtener datos actuales del bien por código único
+        // Obtiene los datos actuales del bien por código único
         $sql_bien = "SELECT id, ubicacion, responsable_patrimonial, codigo_unico, descripcion FROM bienes_publicos WHERE codigo_unico = ?";
         $stmt = mysqli_prepare($con, $sql_bien);
         if (!$stmt) {
@@ -88,7 +92,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
         }
 
         // Obtener datos adicionales para el acta (sin cedula)
-        $sql_usuario = "SELECT nombre, cargo FROM usuarios WHERE id = ?";
+        $sql_usuario = "SELECT nombre, cargo, cedula FROM usuarios WHERE id = ?";
         $stmt_usuario = mysqli_prepare($con, $sql_usuario);
         if (!$stmt_usuario) {
             throw new Exception("Error SQL (usuario): " . mysqli_error($con));
@@ -103,8 +107,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
 
         $nombre_usuario = $usuario_data['nombre'] ?? '';
         $cargo_usuario = $usuario_data['cargo'] ?? '';
-        // Capturar cédulas desde el formulario
-        $cedula_usuario = isset($_POST['cedula_usuario']) ? mysqli_real_escape_string($con, $_POST['cedula_usuario']) : '';
+        $cedula_usuario = $usuario_data['cedula'] ?? '';
         $cedula_destino = isset($_POST['cedula_destino']) ? mysqli_real_escape_string($con, $_POST['cedula_destino']) : '';
 
         // Generar acta de transferencia (PDF) con formato personalizado
@@ -155,16 +158,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
 
         // Firmas
         $firmas_html = '
+        <div style="height:60px;"></div>
         <table width="100%" style="margin-top:40px;">
-            
-        <tr>
-        </tr> 
-        <tr>
-        </tr> 
-        <tr>
-                <td width="33%" align="center">_________________________<br>JEFE DE BIENES DEL I.A.C.E.B. (E)</td>
+            <tr>
+                <td width="33%" align="center" style="padding-top:40px;">_________________________<br>JEFE DE BIENES DEL I.A.C.E.B. (E)</td>
                 <td width="33%"></td>
-                <td width="33%" align="center">_________________________</td>
+                <td width="33%" align="center" style="padding-top:40px;">_________________________</td>
             </tr>
         </table>
         ';
@@ -227,8 +226,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
         header('Content-Type: application/pdf');
         header('Content-Disposition: attachment; filename="' . $nombre_pdf . '"');
         echo $pdf_content;
-        // Recargar la página después de la descarga del PDF
-        echo '<script>window.location.href = "transferencias.php";</script>';
+
+        // Cierra la ventana modal y recarga la página después de la descarga del PDF
+        echo '<script>
+            if(window.parent && window.parent.document.getElementById("modalClaveAccion")){
+                window.parent.document.getElementById("modalClaveAccion").style.display = "none";
+            }
+            setTimeout(function(){ window.location.href = window.location.pathname; }, 500);
+        </script>';
         exit;
 
     } catch (Exception $e) {
@@ -429,10 +434,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
                     </td>
                 </tr>
                 <tr>
-                    <td><label>Cédula Usuario:</label></td>
-                    <td><input type="text" name="cedula_usuario" placeholder="Ingresar cédula"></td>
-                </tr>
-                <tr>
                     <td><label>Unidad Destino:</label></td>
                     <td>
                         <select name="unidad_destino" required>
@@ -470,7 +471,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
             <input type="hidden" name="codigo_unico" id="modal_codigo_unico">
             <input type="hidden" name="unidad_destino" id="modal_unidad_destino">
             <input type="hidden" name="responsable_destino" id="modal_responsable_destino">
-            <input type="hidden" name="cedula_usuario" id="modal_cedula_usuario">
             <input type="hidden" name="cedula_destino" id="modal_cedula_destino">
             <table class="form-table">
                 <tr>
@@ -503,7 +503,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['transferir'])) {
         document.getElementById('modal_codigo_unico').value = document.getElementById('codigo_unico').value;
         document.getElementById('modal_unidad_destino').value = document.querySelector('select[name="unidad_destino"]').value;
         document.getElementById('modal_responsable_destino').value = document.querySelector('input[name="responsable_destino"]').value;
-        document.getElementById('modal_cedula_usuario').value = document.querySelector('input[name="cedula_usuario"]').value;
         document.getElementById('modal_cedula_destino').value = document.querySelector('input[name="cedula_destino"]').value;
         document.getElementById('modalClaveAccion').style.display = 'flex';
         document.getElementById('clave_accion_input').value = '';

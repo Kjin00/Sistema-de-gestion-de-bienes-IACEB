@@ -1,15 +1,16 @@
 <?php
+// Incluye la conexión a la base de datos
 include('conexion.php');
 $con = conectar();
 
-// Variables iniciales
+// Variables iniciales para mensajes, resultados y control de acciones
 $error = '';
 $success = '';
 $resultados = [];
 $bien_detalle = null;
 $accion = isset($_GET['accion']) ? $_GET['accion'] : 'consulta';
 
-// Función para registrar actividad de usuario
+// Función para registrar actividad de usuario en la base de datos
 function registrar_actividad($con, $accion, $detalle = '') {
     if (session_status() !== PHP_SESSION_ACTIVE) session_start();
     if (!isset($_SESSION['usuario_id'])) return;
@@ -20,8 +21,9 @@ function registrar_actividad($con, $accion, $detalle = '') {
     mysqli_stmt_execute($stmt);
 }
 
-// Procesar desincorporación
+// Procesa la desincorporación de un bien
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirmar_desincorporar'])) {
+    // Valida los campos obligatorios
     if (!isset($_POST['motivo']) || trim($_POST['motivo']) === '') {
         $error = "Debe ingresar el motivo de la desincorporación.";
     } elseif (!isset($_POST['explicacion']) || trim($_POST['explicacion']) === '') {
@@ -44,10 +46,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirmar_desincorpora
             if (!$row_clave || $row_clave['clave_accion'] !== $clave_accion_ingresada) {
                 $error = "Clave de acción incorrecta.";
             } else {
+                // Obtiene los datos del bien y valida su estado
                 $id = (int)$_POST['id'];
                 $motivo = mysqli_real_escape_string($con, $_POST['motivo']);
                 $explicacion = mysqli_real_escape_string($con, $_POST['explicacion']);
-                // Obtener estado y responsable patrimonial del bien
+                // Consulta el estado y responsable patrimonial del bien
                 $sql_verificar = "SELECT estado, responsable_patrimonial FROM bienes_publicos WHERE id = ?";
                 $stmt_verificar = mysqli_prepare($con, $sql_verificar);
                 mysqli_stmt_bind_param($stmt_verificar, "i", $id);
@@ -56,16 +59,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirmar_desincorpora
                 $bien = mysqli_fetch_assoc($resultado_verificar);
                 if ($bien && $bien['estado'] === 'Incorporado') {
                     $responsable_patrimonial = $bien['responsable_patrimonial'];
+                    // Actualiza el estado del bien a 'Desincorporado'
                     $sql = "UPDATE bienes_publicos SET estado = 'Desincorporado' WHERE id = ?";
                     $stmt = mysqli_prepare($con, $sql);
                     mysqli_stmt_bind_param($stmt, "i", $id);
                     if (mysqli_stmt_execute($stmt)) {
                         $detalle = "Motivo: $motivo. Explicación: $explicacion";
-                        // Elimina 'detalle' de la consulta y del bind
-                        $sql_movimiento = "INSERT INTO movimientos (bien_id, tipo_movimiento, fecha, cantidad, responsable) 
-                                           VALUES (?, 'Desincorporación', CURDATE(), 1, ?)";
+                        // Registra el movimiento de desincorporación
+                        $sql_movimiento = "INSERT INTO movimientos (bien_id, tipo_movimiento, fecha, cantidad, responsable, detalle) 
+                                           VALUES (?, 'Desincorporación', CURDATE(), 1, ?, ?)";
                         $stmt_movimiento = mysqli_prepare($con, $sql_movimiento);
-                        mysqli_stmt_bind_param($stmt_movimiento, "is", $id, $responsable_patrimonial);
+                        mysqli_stmt_bind_param($stmt_movimiento, "iss", $id, $responsable_patrimonial, $detalle);
                         if (!mysqli_stmt_execute($stmt_movimiento)) {
                             $error = "Error al registrar el movimiento de desincorporación: " . mysqli_error($con);
                         } else {
@@ -185,7 +189,7 @@ if (isset($_GET['ver'])) {
     $sql = "SELECT * FROM bienes_publicos WHERE id = $id";
     $bien_detalle = mysqli_fetch_assoc(mysqli_query($con, $sql));
 
-    // Obtener movimientos de desincorporación para este bien
+    // Obtener movimientos de desincorporación para este bien (traer detalle)
     $sql_mov = "SELECT * FROM movimientos WHERE bien_id = $id AND tipo_movimiento = 'Desincorporación' ORDER BY fecha DESC LIMIT 1";
     $movimiento = mysqli_fetch_assoc(mysqli_query($con, $sql_mov));
 }
@@ -563,7 +567,7 @@ if (isset($_GET['ver'])) {
                     <?php if (isset($movimiento) && !empty($movimiento['detalle'])): ?>
                         <tr>
                             <td><strong>Motivo de Desincorporación</strong></td>
-                            <td><?= htmlspecialchars($movimiento['detalle']) ?></td>
+                            <td><?= nl2br(htmlspecialchars($movimiento['detalle'])) ?></td>
                         </tr>
                     <?php endif; ?>
                 </table>

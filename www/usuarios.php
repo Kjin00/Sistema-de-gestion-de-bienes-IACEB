@@ -1,16 +1,19 @@
 <?php
+// Inicia la sesión y verifica que el usuario sea administrador
 session_start();
 if (!isset($_SESSION['usuario_id']) || $_SESSION['rol'] !== 'admin') {
     header('Location: login.php');
     exit;
 }
+// Incluye la conexión a la base de datos
 include('conexion.php');
 $con = conectar();
 
+// Variables para mensajes de error y éxito
 $error = '';
 $success = '';
 
-// Función para registrar actividad de usuario
+// Función para registrar actividad de usuario en la base de datos
 function registrar_actividad($con, $accion, $detalle = '') {
     if (session_status() !== PHP_SESSION_ACTIVE) session_start();
     if (!isset($_SESSION['usuario_id'])) return;
@@ -21,15 +24,15 @@ function registrar_actividad($con, $accion, $detalle = '') {
     mysqli_stmt_execute($stmt);
 }
 
-// Determinar pestaña activa
+// Determina la pestaña activa (registrar o historial)
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'registrar';
 
-// Si no es el admin principal, forzar historial como única pestaña accesible
+// Si no es el admin principal, solo puede ver el historial
 if ($_SESSION['usuario_id'] != 1) {
     $tab = 'historial';
 }
 
-// Eliminar usuario (no permitir eliminar admin principal)
+// Eliminar usuario (no permite eliminar al admin principal)
 if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
     $id = (int)$_GET['eliminar'];
     if ($id == 1) {
@@ -41,17 +44,19 @@ if (isset($_GET['eliminar']) && is_numeric($_GET['eliminar'])) {
     }
 }
 
-// Crear usuario (solo admin principal puede crear usuarios)
+// Crear usuario (solo el admin principal puede crear usuarios)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_usuario'])) {
     if ($_SESSION['usuario_id'] != 1) {
         $error = "Solo el administrador principal puede crear nuevos usuarios.";
     } else {
+        // Obtiene y valida los datos del formulario
         $usuario = mysqli_real_escape_string($con, $_POST['usuario']);
         $nombre = mysqli_real_escape_string($con, $_POST['nombre']);
         $cargo = mysqli_real_escape_string($con, $_POST['cargo']);
         $clave = hash('sha256', $_POST['clave']);
         $clave_accion = hash('sha256', $_POST['clave_accion']);
         $rol = $_POST['rol'] === 'admin' ? 'admin' : 'usuario';
+        // Inserta el nuevo usuario en la base de datos
         $sql = "INSERT INTO usuarios (usuario, clave, nombre, rol, clave_accion, cargo) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = mysqli_prepare($con, $sql);
         mysqli_stmt_bind_param($stmt, "ssssss", $usuario, $clave, $nombre, $rol, $clave_accion, $cargo);
@@ -65,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_usuario'])) {
     }
 }
 
-// Editar usuario
+// Editar usuario (permite modificar datos de usuario)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_usuario'])) {
     $id = (int)$_POST['id'];
     $nombre = mysqli_real_escape_string($con, $_POST['nombre']);

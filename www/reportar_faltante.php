@@ -1,13 +1,15 @@
 <?php
+// Incluye la conexión a la base de datos
 include('conexion.php');
 $con = conectar();
 
+// Variables para mensajes y resultados
 $error = '';
 $success = '';
 $resultados = [];
 $accion = isset($_GET['accion']) ? $_GET['accion'] : 'consulta';
 
-// Función para registrar actividad de usuario
+// Función para registrar actividad de usuario en la base de datos
 function registrar_actividad($con, $accion, $detalle = '') {
     if (!isset($_SESSION)) session_start();
     if (!isset($_SESSION['usuario_id'])) return;
@@ -18,9 +20,9 @@ function registrar_actividad($con, $accion, $detalle = '') {
     mysqli_stmt_execute($stmt);
 }
 
-// Procesar registro de faltante
+// Procesa el registro de un bien faltante
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
-    // Validar clave de acción
+    // Valida la clave de acción del usuario
     if (!isset($_POST['clave_accion']) || empty($_POST['clave_accion'])) {
         $error = "Debe ingresar la clave de acción para reportar faltante.";
     } else {
@@ -39,17 +41,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
             if (!$row_clave || $row_clave['clave_accion'] !== $clave_accion_ingresada) {
                 $error = "Clave de acción incorrecta.";
             } else {
+                // Obtiene los datos del bien y del formulario
                 $bien_id = (int)$_POST['bien_id'];
                 $causa_probable = mysqli_real_escape_string($con, $_POST['descripcion']);
                 $investigacion = mysqli_real_escape_string($con, $_POST['responsable']);
 
-                // Obtener la cantidad del bien
+                // Consulta la cantidad y responsable del bien
                 $sql_cant = "SELECT cantidad, responsable_patrimonial FROM bienes_publicos WHERE id = $bien_id";
                 $res_cant = mysqli_query($con, $sql_cant);
                 $row_cant = mysqli_fetch_assoc($res_cant);
                 $cantidad_faltante = $row_cant && isset($row_cant['cantidad']) ? (int)$row_cant['cantidad'] : 1;
                 $responsable_patrimonial = $row_cant && isset($row_cant['responsable_patrimonial']) ? $row_cant['responsable_patrimonial'] : '';
 
+                // Inserta el reporte de faltante en la base de datos
                 $sql = "INSERT INTO faltantes (bien_id, fecha_reporte, cantidad_faltante, causa_probable, investigacion) 
                         VALUES (?, CURDATE(), ?, ?, ?)";
                 $stmt = mysqli_prepare($con, $sql);
@@ -59,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
                     mysqli_stmt_bind_param($stmt, "iiss", $bien_id, $cantidad_faltante, $causa_probable, $investigacion);
 
                     if (mysqli_stmt_execute($stmt)) {
-                        // Cambiar estado del bien a "En investigación"
+                        // Cambia el estado del bien a "En investigación"
                         $sql_estado = "UPDATE bienes_publicos SET estado = 'En investigación' WHERE id = ?";
                         $stmt_estado = mysqli_prepare($con, $sql_estado);
                         if ($stmt_estado) {
@@ -67,7 +71,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
                             mysqli_stmt_execute($stmt_estado);
                             mysqli_stmt_close($stmt_estado);
                         }
-                        // Registrar movimiento tipo 'Reporte'
+                        // Registra el movimiento tipo 'Reporte'
                         $sql_mov = "INSERT INTO movimientos (bien_id, tipo_movimiento, fecha, cantidad, responsable) VALUES (?, 'Reporte', CURDATE(), ?, ?)";
                         $stmt_mov = mysqli_prepare($con, $sql_mov);
                         if ($stmt_mov) {
@@ -76,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar'])) {
                             mysqli_stmt_close($stmt_mov);
                         }
                         $success = "Reporte de bien faltante registrado exitosamente.";
-                        // Registrar actividad
+                        // Registra la actividad del usuario
                         registrar_actividad($con, "Reportar Faltante", "Bien ID: $bien_id, Responsable: $investigacion");
                     } else {
                         $error = "Error al registrar el reporte: " . mysqli_error($con);
@@ -385,7 +389,7 @@ while ($b = mysqli_fetch_assoc($res_bienes)) {
             <tr><td><strong>Responsable Patrimonial</strong></td><td><?= isset($bien['responsable_patrimonial']) ? htmlspecialchars($bien['responsable_patrimonial']) : 'N/D' ?></td></tr>
             <tr><td><strong>Fecha de Adquisición</strong></td><td><?= isset($bien['fecha_adquisicion']) ? date('d/m/Y', strtotime($bien['fecha_adquisicion'])) : 'N/D' ?></td></tr>
             <tr><td><strong>Precio de Adquisición</strong></td><td><?= isset($bien['precio_adquisicion']) ? number_format($bien['precio_adquisicion'],2,',','.') : 'N/D' ?></td></tr>
-            <tr><td><strong>Notas</strong></td><td><?= isset($bien['notas']) ? nl2br(htmlspecialchars($bien['notas'])) : 'N/D' ?></td></tr>
+            <tr><td><strong>Observaciones</strong></td><td><?= isset($bien['notas']) ? nl2br(htmlspecialchars($bien['notas'])) : 'N/D' ?></td></tr>
             <tr><td><strong>Descripción Faltante</strong></td><td><?= htmlspecialchars($faltante_detalle['causa_probable']) ?></td></tr>
             <tr><td><strong>Fecha Reporte</strong></td><td><?= date('d/m/Y', strtotime($faltante_detalle['fecha_reporte'])) ?></td></tr>
             <tr><td><strong>Responsable (Investigación)</strong></td><td><?= htmlspecialchars($faltante_detalle['investigacion']) ?></td></tr>

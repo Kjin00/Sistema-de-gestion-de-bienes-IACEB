@@ -277,12 +277,12 @@
                                     <td width="35%"><label>Ubicacion:</label></td>
                                     <td>
                                                                                     <select name="ubicacion" required>
-                                                                                                    <option value="Patrimonio" >Patrimonio</option>
-                                                                                                    <option value="Prensa" >Prensa</option>
+                                                                                                    <option value="Gerencia de Patrimonio Cultural." >Gerencia de Patrimonio Cultural.</option>
+                                                                                                    <option value="Gerencia de Promoción y Difusión Cultural" >Gerencia de Promoción y Difusión Cultural</option>
                                                                                                     <option value="Presidencia" >Presidencia</option>
-                                                                                                    <option value="Administración" selected>Administración</option>
+                                                                                                    <option value="Gerencia de Administración" selected>Gerencia de Administración</option>
                                                                                                     <option value="Recursos Humanos" >Recursos Humanos</option>
-                                                                                                    <option value="Almacén" >Almacén</option>
+                                                                                                    <option value="Deposito" >Deposito</option>
                                                                                                     <option value="Escuela de Música" >Escuela de Música</option>
                                                                                                     <option value="Escuela de Artes Escénicas" >Escuela de Artes Escénicas</option>
                                                                                                     <option value="Escuela de Artes Plásticos" >Escuela de Artes Plásticos</option>

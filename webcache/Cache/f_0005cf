@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Desincorporaciones de Bienes</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            background-image: url('fondo_barinas.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+        }
+        .container { 
+            max-width: 1050px; 
+            width: 96%;
+            margin: 40px auto 30px auto; 
+            padding: 20px; 
+            background: rgba(255,255,255,0.97);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.18), 0 2px 10px #ccc;
+        }
+        .menu-interno { margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .menu-interno a { 
+            display: inline-block;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid #ddd;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            background: #f5f5f5;
+        }
+        .menu-interno a.activo { 
+            background: #fff;
+            border-bottom: 2px solid #fff;
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .seccion-contenido { border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+        .form-table { width: 100%; border-collapse: collapse; }
+        .form-table td { padding: 10px; border: 1px solid #ddd; }
+        .search-box { margin-bottom: 20px; }
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .results-table th, .results-table td { padding: 10px; border: 1px solid #ddd; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+        .detail-view { background: #f9f9f9; padding: 20px; margin-top: 20px; }
+        .back-button {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        .action-btn, button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .action-btn:hover, button:hover {
+            background-color: #0056b3;
+        }
+        .action-btn.red {
+            background-color: #e74c3c;
+        }
+        .action-btn.red:hover {
+            background-color: #c0392b;
+        }
+        .action-btn.green {
+            background-color: #28a745;
+        }
+        .action-btn.green:hover {
+            background-color: #1e7e34;
+        }
+        .motivo-area, .explicacion-area {
+            width: 98%;
+            min-height: 40px;
+            resize: none;
+            font-size: 15px;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-bottom: 6px;
+            box-sizing: border-box;
+            transition: min-height 0.2s;
+            overflow-x: hidden;
+        }
+        .clave-area {
+            width: 98%;
+            font-size: 15px;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-bottom: 6px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        .modal-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            padding: 30px 30px 20px 30px;
+            min-width: 320px;
+            max-width: 98vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 2px 20px #3338;
+            position: relative;
+        }
+        .modal-content .action-btn-lista {
+            background-color: #6c757d;
+            color: #fff;
+            margin-right: 10px;
+        }
+        .modal-content .action-btn-lista:hover {
+            background-color: #495057;
+        }
+        @media (max-width: 600px) {
+            .modal-content { padding: 10px; min-width: 0; }
+        }
+    </style>
+    <script>
+    // Autoajuste solo en altura para textarea
+    function autoResizeField(el) {
+        if (el.tagName === 'TEXTAREA') {
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('textarea').forEach(function(el) {
+            autoResizeField(el);
+            el.addEventListener('input', function() { autoResizeField(el); });
+        });
+    });
+
+    function mostrarMotivoExp(id) {
+        // Oculta cualquier otro modal abierto
+        document.querySelectorAll('tr[id^="desinc-form-row-"]').forEach(function(row) {
+            row.style.display = 'none';
+        });
+        document.getElementById('desinc-form-row-' + id).style.display = '';
+        // Reset forms
+        document.getElementById('motivoExpForm-' + id).style.display = '';
+        document.getElementById('claveAccionForm-' + id).style.display = 'none';
+        document.getElementById('motivo-' + id).value = '';
+        document.getElementById('explicacion-' + id).value = '';
+    }
+    function mostrarClaveAccion(id) {
+        // Copia los valores a los campos ocultos
+        document.getElementById('hidden-motivo-' + id).value = document.getElementById('motivo-' + id).value;
+        document.getElementById('hidden-explicacion-' + id).value = document.getElementById('explicacion-' + id).value;
+        document.getElementById('motivoExpForm-' + id).style.display = 'none';
+        document.getElementById('claveAccionForm-' + id).style.display = '';
+    }
+    function cerrarDesincModal(id) {
+        document.getElementById('desinc-form-row-' + id).style.display = 'none';
+    }
+    function abrirModalDetalle(id) {
+        window.location.href = '?accion=consulta&ver=' + id;
+    }
+    function cerrarModalDetalle() {
+        window.location.href = '?accion=consulta';
+    }
+    function volverLista() {
+        window.location.href = '?accion=consulta';
+    }
+    // Modal Clave de Acción
+    function abrirModalClaveAccion(tipo, id) {
+        document.getElementById('modalClaveAccion').style.display = 'flex';
+        document.getElementById('clave_accion_tipo').value = tipo;
+        document.getElementById('clave_accion_id').value = id || '';
+        document.getElementById('clave_accion_input').value = '';
+        document.getElementById('clave_accion_input').focus();
+    }
+    function cerrarModalClaveAccion() {
+        document.getElementById('modalClaveAccion').style.display = 'none';
+    }
+    function submitClaveAccion() {
+        document.getElementById('form-modal-clave-accion').submit();
+    }
+    </script>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <img src="logo_iaceb.png" alt="Logo IACEB" style="height:60px;">
+        <img src="logo_barinas.png" alt="Logo Barinas" style="height:60px;">
+    </div>
+    <div class="menu-interno">
+        <a href="?accion=consulta" class="activo">Consultar Bienes Desincorporados</a>
+        <a href="?accion=desincorporar" class="">Desincorporar Bienes</a>
+    </div>
+
+    <div class="seccion-contenido">
+                    <!-- Sección de Consulta -->
+            <form method="GET" class="search-box">
+                <input type="hidden" name="accion" value="consulta">
+                <input type="text" name="busqueda" placeholder="Buscar bienes desincorporados" value="">
+                <button type="submit" class="action-btn">Buscar</button>
+            </form>
+                        <table class="results-table">
+                <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+                                <tr>
+                    <td>IACEB-86</td>
+                    <td>Mueble</td>
+                    <td>Silla de visitante color gris...</td>
+                    <td>11/05/2024</td>
+                    <td>Optimo</td>
+                    <td>
+                        <button type="button" class="action-btn green" onclick="abrirModalClaveAccion('reincorporar', 3)">Reincorporar</button>
+                        <button type="button" class="action-btn" style="margin-left:5px;" onclick="abrirModalDetalle(3)">Ver Detalles</button>
+                    </td>
+                </tr>
+                            </table>
+                    
+                <div class="modal-bg" id="modalDetalle">
+            <div class="modal-content">
+                <h3>Ficha Técnica Completa</h3>
+                <table class="form-table">
+                                                                    <tr>
+                            <td><strong>Id</strong></td>
+                            <td>
+                                                                    3                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Codigo Unico</strong></td>
+                            <td>
+                                                                    IACEB-86                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Tipo Bien</strong></td>
+                            <td>
+                                                                    Mueble                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Subcategoria</strong></td>
+                            <td>
+                                                                    2-01: Máquinas y equipos de oficina                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Descripcion</strong></td>
+                            <td>
+                                                                    Silla de visitante color gris                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Fecha Adquisicion</strong></td>
+                            <td>
+                                                                    11/05/2024                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Precio Adquisicion</strong></td>
+                            <td>
+                                                                    20.00 Bs
+                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Estado Conservacion</strong></td>
+                            <td>
+                                                                    Optimo                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Ubicacion</strong></td>
+                            <td>
+                                                                    Presidencia                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Responsable Patrimonial</strong></td>
+                            <td>
+                                                                    Presidencia                                                            </td>
+                        </tr>
+                                                                                                                                                                                    <tr>
+                            <td><strong>Cantidad</strong></td>
+                            <td>
+                                                                    1                                                            </td>
+                        </tr>
+                                                                                            <tr>
+                            <td><strong>Estado</strong></td>
+                            <td>
+                                                                    Desincorporado                                                            </td>
+                        </tr>
+                                                                                </table>
+                <div style="margin-top: 20px; text-align:right;">
+                    <button class="action-btn action-btn-lista" onclick="volverLista()">Volver a la lista</button>
+                </div>
+            </div>
+        </div>
+            </div>
+    <a href="Inicio.php" class="back-button action-btn">← Regresar a Inicio</a>
+</div>
+
+<!-- Modal Clave de Acción Global -->
+<div class="modal-bg" id="modalClaveAccion" style="display:none;">
+    <div class="modal-content">
+        <h3>Clave de Acción</h3>
+        <form method="POST" id="form-modal-clave-accion">
+            <input type="hidden" name="clave_accion_tipo" id="clave_accion_tipo">
+            <input type="hidden" name="clave_accion_id" id="clave_accion_id">
+            <table class="form-table">
+                <tr>
+                    <td><label>Clave de Acción:</label></td>
+                    <td><input type="password" name="clave_accion" id="clave_accion_input" required></td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="text-align:center;">
+                        <button type="submit">Confirmar</button>
+                        <button type="button" onclick="cerrarModalClaveAccion()" class="action-btn action-btn-lista">Cancelar</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('form-modal-clave-accion').onsubmit = function(e) {
+        e.preventDefault();
+        var tipo = document.getElementById('clave_accion_tipo').value;
+        var id = document.getElementById('clave_accion_id').value;
+        var clave = document.getElementById('clave_accion_input').value;
+        if (tipo === 'desincorporar') {
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.innerHTML = '<input type="hidden" name="confirmar_desincorporar" value="1">' +
+                          '<input type="hidden" name="clave_accion" value="'+clave+'">' +
+                          '<input type="hidden" name="id" value="'+id+'">' +
+                          // Motivo y explicación deben ser recuperados del DOM si es necesario
+                          '<input type="hidden" name="motivo" value="'+(document.getElementById('motivo-'+id).value)+'">' +
+                          '<input type="hidden" name="explicacion" value="'+(document.getElementById('explicacion-'+id).value)+'">';
+            document.body.appendChild(f);
+            f.submit();
+        } else if (tipo === 'reincorporar') {
+            var f = document.createElement('form');
+            f.method = 'POST';
+            f.innerHTML = '<input type="hidden" name="reincorporar" value="1">' +
+                          '<input type="hidden" name="clave_accion" value="'+clave+'">' +
+                          '<input type="hidden" name="id" value="'+id+'">';
+            document.body.appendChild(f);
+            f.submit();
+        }
+    };
+</script>

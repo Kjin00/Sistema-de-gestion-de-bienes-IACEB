@@ -1,8 +1,9 @@
 <?php
+// Incluye la conexión a la base de datos
 include('conexion.php');
 $con = conectar();
 
-// Variables iniciales
+// Variables iniciales para mensajes, resultados y control de acciones
 $error = '';
 $success = '';
 $resultados = [];
@@ -21,26 +22,26 @@ function registrar_actividad($con, $accion, $detalle = '') {
     mysqli_stmt_execute($stmt);
 }
 
-// Procesar formulario de incorporación (todo en un solo paso)
+// Procesa el formulario de incorporación de un bien
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar_bien_final'])) {
     try {
-        // Validar clave de acción
+        // Valida la clave de acción del usuario
         if (!isset($_POST['clave_accion']) || empty($_POST['clave_accion'])) {
             throw new Exception("Debe ingresar la clave de acción para registrar un bien.");
         }
-        // Validar fecha de adquisición (espera formato dd-mm-aaaa)
+        // Valida la fecha de adquisición (espera formato dd-mm-aaaa)
         if (!isset($_POST['fecha_adquisicion']) || trim($_POST['fecha_adquisicion']) === '') {
             throw new Exception("Debe ingresar la fecha de adquisición del bien.");
         }
         $fecha_input = trim($_POST['fecha_adquisicion']);
-        // Validar formato dd-mm-aaaa
+        // Valida el formato dd-mm-aaaa
         if (!preg_match('/^\d{2}-\d{2}-\d{4}$/', $fecha_input)) {
             throw new Exception("La fecha de adquisición debe tener el formato DD-MM-AAAA.");
         }
-        // Convertir a formato aaaa-mm-dd para MySQL
+        // Convierte la fecha a formato aaaa-mm-dd para MySQL
         $partes_fecha = explode('-', $fecha_input);
         $fecha_mysql = $partes_fecha[2] . '-' . $partes_fecha[1] . '-' . $partes_fecha[0];
-        // Validar que sea una fecha válida
+        // Valida que sea una fecha válida
         if (!checkdate((int)$partes_fecha[1], (int)$partes_fecha[0], (int)$partes_fecha[2])) {
             throw new Exception("La fecha de adquisición no es válida.");
         }
@@ -57,7 +58,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar_bien_final']
             throw new Exception("Clave de acción incorrecta.");
         }
 
-        // Recuperar y sanitizar datos del bien
+        // Recupera y sanitiza los datos del bien
         $codigo_unico = mysqli_real_escape_string($con, $_POST['codigo_unico']);
         $tipo_bien = mysqli_real_escape_string($con, $_POST['tipo_bien']);
         $subcategoria = mysqli_real_escape_string($con, $_POST['subcategoria']);
@@ -71,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar_bien_final']
         $notas = mysqli_real_escape_string($con, $_POST['notas']);
         $documento_soporte = '';
 
-        // Validar código único
+        // Valida que el código único no exista previamente
         $sql_verificar = "SELECT id FROM bienes_publicos WHERE codigo_unico = ?";
         $stmt = mysqli_prepare($con, $sql_verificar);
         mysqli_stmt_bind_param($stmt, "s", $codigo_unico);
@@ -81,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar_bien_final']
             throw new Exception("El código único ya está registrado");
         }
 
-        // Procesar documento
+        // Procesa el documento de soporte si fue subido
         if (isset($_FILES['documento_soporte']) && $_FILES['documento_soporte']['size'] > 0) {
             $allowed = ['pdf', 'jpg', 'jpeg', 'png'];
             $file_ext = strtolower(pathinfo($_FILES['documento_soporte']['name'], PATHINFO_EXTENSION));
@@ -103,7 +104,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar_bien_final']
             $documento_soporte = $target_file;
         }
 
-        // Insertar en base de datos (sentencia preparada)
+        // Inserta el nuevo bien en la base de datos
         $sql = "INSERT INTO bienes_publicos (
             codigo_unico, tipo_bien, subcategoria, descripcion, 
             fecha_adquisicion, estado_conservacion, 
@@ -129,7 +130,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['registrar_bien_final']
 
         if (!mysqli_stmt_execute($stmt)) {
             if ($documento_soporte && file_exists($documento_soporte)) {
-                unlink($documento_soporte); // Eliminar archivo subido
+                unlink($documento_soporte); // Eliminar archivo subido en caso de error
             }
             throw new Exception("Error al registrar: " . mysqli_error($con));
         }
@@ -175,15 +176,7 @@ if ($accion == 'consulta') {
     }
     $resultados = mysqli_query($con, $sql);
 }
-
-// Mostrar mensajes de éxito/error tras eliminación
-if (isset($_GET['success']) && $_GET['success'] == 'eliminado') {
-    $success = "Bien eliminado correctamente.";
-}
-if (isset($_GET['error']) && $_GET['error'] != '') {
-    $error = htmlspecialchars($_GET['error']);
-}
-
+// Ver detalle de un bien específico
 if (isset($_GET['ver'])) {
     $id = (int)$_GET['ver'];
     $sql = "SELECT * FROM bienes_publicos WHERE id = $id";
@@ -197,58 +190,6 @@ if (isset($_GET['editar'])) {
     $accion = 'editar_bien';
 }
 
-// Eliminar bien (clave de acción como confirmación, usando el modal visual)
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['id']) && isset($_POST['clave_accion']) && !isset($_POST['editar_bien']) && !isset($_POST['guardar_edicion']) && !isset($_POST['registrar_bien_final'])) {
-    try {
-        if (!isset($_POST['clave_accion']) || empty($_POST['clave_accion'])) {
-            throw new Exception("Debe ingresar la clave de acción para eliminar el bien.");
-        }
-        if (!isset($_POST['id']) || !is_numeric($_POST['id'])) {
-            throw new Exception("ID de bien inválido.");
-        }
-        if (session_status() !== PHP_SESSION_ACTIVE) session_start();
-        if (!isset($_SESSION['usuario_id'])) {
-            throw new Exception("Sesión expirada. Vuelva a iniciar sesión.");
-        }
-        $usuario_id = $_SESSION['usuario_id'];
-        $clave_accion_ingresada = hash('sha256', $_POST['clave_accion']);
-        $sql_clave = "SELECT clave_accion FROM usuarios WHERE id = ?";
-        $stmt_clave = mysqli_prepare($con, $sql_clave);
-        mysqli_stmt_bind_param($stmt_clave, "i", $usuario_id);
-        mysqli_stmt_execute($stmt_clave);
-        $res_clave = mysqli_stmt_get_result($stmt_clave);
-        $row_clave = mysqli_fetch_assoc($res_clave);
-        if (!$row_clave || $row_clave['clave_accion'] !== $clave_accion_ingresada) {
-            throw new Exception("Clave de acción incorrecta.");
-        }
-        $id = (int)$_POST['id'];
-
-        // Verifica que el bien exista antes de eliminar
-        $sql_check = "SELECT id FROM bienes_publicos WHERE id = ?";
-        $stmt_check = mysqli_prepare($con, $sql_check);
-        mysqli_stmt_bind_param($stmt_check, "i", $id);
-        mysqli_stmt_execute($stmt_check);
-        mysqli_stmt_store_result($stmt_check);
-        if (mysqli_stmt_num_rows($stmt_check) === 0) {
-            throw new Exception("El bien no existe o ya fue eliminado.");
-        }
-
-        // Eliminar bien
-        $sql = "DELETE FROM bienes_publicos WHERE id = ?";
-        $stmt = mysqli_prepare($con, $sql);
-        mysqli_stmt_bind_param($stmt, "i", $id);
-        if (mysqli_stmt_execute($stmt)) {
-            registrar_actividad($con, "Eliminar Bien", "ID: $id");
-            $success = "Bien eliminado correctamente.";
-        } else {
-            $error = "Error al eliminar: " . mysqli_error($con);
-        }
-        $accion = 'consulta';
-    } catch (Exception $e) {
-        $error = $e->getMessage();
-        $accion = 'consulta';
-    }
-}
 
 // Edición de bien (dos pasos)
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
@@ -265,6 +206,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
     $accion = 'clave_accion_editar';
 } elseif ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirmar_editar'])) {
     try {
+        // Valida la clave de acción
         if (!isset($_POST['clave_accion']) || empty($_POST['clave_accion'])) {
             throw new Exception("Debe ingresar la clave de acción para editar el bien.");
         }
@@ -310,6 +252,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
         $ubicacion = mysqli_real_escape_string($con, $datos['ubicacion']);
         $notas = mysqli_real_escape_string($con, $datos['notas']);
 
+        // Actualiza los datos del bien en la base de datos
         $sql = "UPDATE bienes_publicos SET
             tipo_bien = ?, subcategoria = ?, descripcion = ?, fecha_adquisicion = ?, estado_conservacion = ?,
             responsable_patrimonial = ?, precio_adquisicion = ?, cantidad = ?, ubicacion = ?, notas = ?
@@ -533,26 +476,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
             document.getElementById('form-datos-bien').style.display = '';
         }
 
-        function mostrarClaveAccionEliminar(id) {
-            document.getElementById('form-eliminar-' + id).style.display = 'none';
-            document.getElementById('form-clave-accion-eliminar-' + id).style.display = '';
-        }
-
-        function volverEliminar(id) {
-            document.getElementById('form-clave-accion-eliminar-' + id).style.display = 'none';
-            document.getElementById('form-eliminar-' + id).style.display = '';
-        }
-
-        function mostrarClaveAccionEditar(id) {
-            document.getElementById('form-editar-' + id).style.display = 'none';
-            document.getElementById('form-clave-accion-editar-' + id).style.display = '';
-        }
-
-        function volverEditar(id) {
-            document.getElementById('form-clave-accion-editar-' + id).style.display = 'none';
-            document.getElementById('form-editar-' + id).style.display = '';
-        }
-
         // Modal Clave de Acción
         function abrirModalClaveAccion(tipo, id = null) {
             document.getElementById('modalClaveAccion').style.display = 'flex';
@@ -571,27 +494,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
                 var id = document.getElementById('clave_accion_id').value;
                 var clave = document.getElementById('clave_accion_input').value;
 
-                if (tipo === 'eliminar') {
-                    var formEliminar = document.getElementById('form-eliminar-' + id);
-                    if (formEliminar) {
-                        var prev = formEliminar.querySelector('input[name="clave_accion"]');
-                        if (prev) formEliminar.removeChild(prev);
-                        var inputClave = document.createElement('input');
-                        inputClave.type = 'hidden';
-                        inputClave.name = 'clave_accion';
-                        inputClave.value = clave;
-                        formEliminar.appendChild(inputClave);
-                        formEliminar.submit();
-                    } else {
-                        var form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '';
-                        form.innerHTML = '<input type="hidden" name="id" value="' + id + '">' +
-                                         '<input type="hidden" name="clave_accion" value="' + clave + '">';
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                } else if (tipo === 'registro') {
+                if (tipo === 'registro') {
                     var f = document.createElement('form');
                     f.method = 'POST';
                     f.innerHTML = '<input type="hidden" name="confirmar_registro" value="1">' +
@@ -706,12 +609,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
                         <td><label>Ubicación:</label></td>
                         <td>
                             <select name="ubicacion" required>
-                                <option value="Patrimonio">Patrimonio</option>
-                                <option value="Prensa">Prensa</option>
+                                <option value="Gerencia de Patrimonio Cultural.">Gerencia de Patrimonio Cultural.</option>
+                                <option value="Gerencia de Promoción y Difusión Cultural">Gerencia de Promoción y Difusión Cultural</option>
                                 <option value="Presidencia">Presidencia</option>
-                                <option value="Administración">Administración</option>
+                                <option value="Gerencia de Administración">Gerencia de Administración</option>
                                 <option value="Recursos Humanos">Recursos Humanos</option>
-                                <option value="Almacén">Almacén</option>
+                                <option value="Deposito">Deposito</option>
                                 <option value="Escuela de Música">Escuela de Música</option>
                                 <option value="Escuela de Artes Escénicas">Escuela de Artes Escénicas</option>
                                 <option value="Escuela de Artes Plásticos">Escuela de Artes Plásticos</option>
@@ -731,7 +634,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
                         <td><input type="number" name="cantidad" min="1" value="1" required></td>
                     </tr>
                     <tr>
-                        <td><label>Notas:</label></td>
+                        <td><label>Observaciones:</label></td>
                         <td><textarea name="notas" rows="2" oninput="autoResizeField(this)"></textarea></td>
                     </tr>
                     <tr>
@@ -899,8 +802,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
                                             <select name="ubicacion" required>
                                                 <?php
                                                 $ubicaciones = [
-                                                    'Patrimonio', 'Prensa', 'Presidencia', 'Administración',
-                                                    'Recursos Humanos', 'Almacén', 'Escuela de Música',
+                                                    'Gerencia de Patrimonio Cultural.', 'Gerencia de Promoción y Difusión Cultural', 'Presidencia', 'Gerencia de Administración',
+                                                    'Recursos Humanos', 'Deposito', 'Escuela de Música',
                                                     'Escuela de Artes Escénicas', 'Escuela de Artes Plásticos',
                                                     'Auditorio', 'Banda del estado barinas', 'Ateneo',
                                                     'No Ubicados'
@@ -989,9 +892,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
                             <input type="hidden" name="id" value="<?= $bien['id'] ?>">
                             <button type="submit" name="editar_bien" class="action-btn">Editar</button>
                         </form>
-                        <!-- Eliminar (abrir modal de clave) -->
-                        <button type="button" class="action-btn" style="background-color:#e74c3c;" 
-        onclick="abrirModalClaveAccion('eliminar', <?= $bien['id'] ?>)">Eliminar</button>
                         <button type="button" class="action-btn" onclick="abrirModalDetalle(<?= $bien['id'] ?>)">Ver Detalles</button>
                     </td>
                 </tr>
@@ -1101,21 +1001,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['editar_bien'])) {
                 document.body.appendChild(f);
                 f.submit();
             }
-        } else if (tipo === 'eliminar') {
-            // Enviar el formulario al formulario oculto de la fila correspondiente
-            var formEliminar = document.getElementById('form-eliminar-' + id);
-            if (formEliminar) {
-                // Elimina cualquier input previo de clave_accion para evitar duplicados
-                var prev = formEliminar.querySelector('input[name="clave_accion"]');
-                if (prev) formEliminar.removeChild(prev);
-                var inputClave = document.createElement('input');
-                inputClave.type = 'hidden';
-                inputClave.name = 'clave_accion';
-                inputClave.value = clave;
-                formEliminar.appendChild(inputClave);
-                formEliminar.submit();
-            }
         }
+        // Eliminar bloque para tipo === 'eliminar'
     };
 </script>
 </body>
